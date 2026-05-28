@@ -29,6 +29,7 @@ const menuItems = [
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const currentItem = menuItems.find(item => item.key === currentPage);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -43,34 +44,25 @@ function App() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible theme="dark">
-        <div style={{
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: 20,
-          fontWeight: 600,
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <WalletOutlined style={{ marginRight: 8 }} />
-          Meu Financeiro
+    <Layout className="app-shell">
+      <Sider collapsible theme="dark" className="app-sidebar">
+        <div className="app-brand">
+          <WalletOutlined />
+          <span>Meu Financeiro</span>
         </div>
         <Menu
           theme="dark"
-          defaultSelectedKeys={['dashboard']}
+          selectedKeys={[currentPage]}
           mode="inline"
           items={menuItems}
           onClick={({ key }) => setCurrentPage(key)}
         />
       </Sider>
       <Layout>
-        <Header style={{ background: '#fff', padding: '0 24px', fontSize: 18 }}>
-          {menuItems.find(item => item.key === currentPage)?.label}
+        <Header className="app-header">
+          <span>{currentItem?.label}</span>
         </Header>
-        <Content style={{ margin: 16, padding: 24, background: '#fff', borderRadius: 8 }}>
+        <Content className="app-content">
           {renderPage()}
         </Content>
       </Layout>

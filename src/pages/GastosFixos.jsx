@@ -1,91 +1,148 @@
-import { useState, useEffect } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { PlusOutlined, EditOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import FinanceGrid from '../components/FinanceGrid';
 import { formatCurrency } from '../utils/currency';
 
-const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
+const initialForm = () => ({
+  nome: '',
+  valor: '',
+  dia_vencimento: '1',
+  tipo_pagamento: 'pix',
+  categoria_id: ''
+});
 
 function GastosFixos() {
   const [gastosFixos, setGastosFixos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
-  const [form, setForm] = useState({
-    nome: '',
-    valor: '',
-    dia_vencimento: '1',
-    tipo_pagamento: 'pix',
-    categoria_id: ''
-  });
+  const [quickSearch, setQuickSearch] = useState('');
+  const [form, setForm] = useState(initialForm);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [columnDefs] = useState([
-    { field: 'nome', headerName: 'Nome', flex: 2 },
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [gf, c] = await Promise.all([
+        window.api.getGastosFixos(),
+        window.api.getCategorias()
+      ]);
+      setGastosFixos(gf);
+      setCategorias(c);
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar gastos fixos');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const resetForm = () => {
+    setForm(initialForm());
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setEditando(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = useCallback((gasto) => {
+    setEditando(gasto);
+    setForm({
+      nome: gasto.nome,
+      valor: gasto.valor.toString(),
+      dia_vencimento: gasto.dia_vencimento.toString(),
+      tipo_pagamento: gasto.tipo_pagamento || 'pix',
+      categoria_id: gasto.categoria_id || ''
+    });
+    setShowModal(true);
+  }, []);
+
+  const handleDelete = useCallback(async (id) => {
+    if (confirm('Tem certeza que deseja excluir? As transações já criadas permanecerão.')) {
+      await window.api.deleteGastoFixo(id);
+      loadData();
+    }
+  }, [loadData]);
+
+  const columnDefs = useMemo(() => [
+    {
+      field: 'nome',
+      headerName: 'Nome',
+      flex: 1.6,
+      minWidth: 220,
+      pinned: 'left'
+    },
     {
       field: 'valor',
-      headerName: 'Valor',
-      flex: 1,
-      valueFormatter: (params) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(params.value);
+      headerName: 'Valor mensal',
+      width: 144,
+      type: 'rightAligned',
+      cellClass: 'money-cell expense',
+      valueFormatter: (params) => formatCurrency(params.value)
+    },
+    {
+      field: 'dia_vencimento',
+      headerName: 'Vencimento',
+      width: 126,
+      valueFormatter: (params) => `Dia ${params.value}`
+    },
+    {
+      field: 'tipo_pagamento',
+      headerName: 'Pagamento',
+      width: 136,
+      cellRenderer: (params) => {
+        if (!params.value) return <span className="muted-cell">-</span>;
+        return <span className={`tipo-badge ${params.value}`}>{params.value}</span>;
       }
     },
-    { field: 'dia_vencimento', headerName: 'Dia', flex: 0.5 },
-    { field: 'tipo_pagamento', headerName: 'Pagamento', flex: 1 },
     {
       field: 'categoria_nome',
       headerName: 'Categoria',
       flex: 1,
-      valueFormatter: (params) => params.value || '-'
+      minWidth: 160,
+      cellRenderer: (params) => {
+        if (!params.value) return <span className="muted-cell">Sem categoria</span>;
+        return (
+          <span className="category-chip" style={{ '--chip-color': params.data.categoria_cor || '#6b7280' }}>
+            {params.value}
+          </span>
+        );
+      }
     },
     {
       headerName: 'Ações',
-      flex: 1,
+      width: 112,
+      minWidth: 112,
+      pinned: 'right',
+      sortable: false,
+      filter: false,
       cellRenderer: (params) => (
-        <div style={{ display: 'flex', gap: 8, padding: '4px 0' }}>
-          <button
-            className="btn-secondary"
-            onClick={() => handleEdit(params.data)}
-            style={{ padding: '4px 8px', fontSize: 12 }}
-          >
+        <div className="grid-row-actions">
+          <button type="button" className="icon-button" aria-label="Editar" onClick={() => handleEdit(params.data)}>
             <EditOutlined />
           </button>
-          <button
-            className="btn-secondary"
-            onClick={() => handleDelete(params.data.id)}
-            style={{ padding: '4px 8px', fontSize: 12, color: '#ef4444' }}
-          >
+          <button type="button" className="icon-button danger" aria-label="Excluir" onClick={() => handleDelete(params.data.id)}>
             <DeleteOutlined />
           </button>
         </div>
       )
     }
-  ]);
-
-  const defaultColDef = {
-    sortable: true,
-    resizable: true
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    const [gf, c] = await Promise.all([
-      window.api.getGastosFixos(),
-      window.api.getCategorias()
-    ]);
-    setGastosFixos(gf);
-    setCategorias(c);
-  };
+  ], [handleDelete, handleEdit]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const dados = {
       ...form,
       valor: parseFloat(form.valor),
-      dia_vencimento: parseInt(form.dia_vencimento)
+      dia_vencimento: parseInt(form.dia_vencimento, 10)
     };
 
     if (editando) {
@@ -101,79 +158,64 @@ function GastosFixos() {
     loadData();
   };
 
-  const handleEdit = (g) => {
-    setEditando(g);
-    setForm({
-      nome: g.nome,
-      valor: g.valor.toString(),
-      dia_vencimento: g.dia_vencimento.toString(),
-      tipo_pagamento: g.tipo_pagamento || 'pix',
-      categoria_id: g.categoria_id || ''
-    });
-    setShowModal(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (confirm('Tem certeza que deseja excluir? As transações já criadas permanecerão.')) {
-      await window.api.deleteGastoFixo(id);
-      loadData();
-    }
-  };
-
-  const resetForm = () => {
-    setForm({
-      nome: '',
-      valor: '',
-      dia_vencimento: '1',
-      tipo_pagamento: 'pix',
-      categoria_id: ''
-    });
-  };
-
-  const totalMensal = gastosFixos.reduce((sum, g) => sum + g.valor, 0);
+  const totalMensal = gastosFixos.reduce((sum, gasto) => sum + gasto.valor, 0);
+  const proximoVencimento = gastosFixos.length
+    ? Math.min(...gastosFixos.map((gasto) => gasto.dia_vencimento))
+    : null;
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div className="workspace">
+      {error && <div className="alert-error">{error}</div>}
+
+      <div className="workspace-header">
         <div>
-          <h1 className="page-title" style={{ margin: 0 }}>Gastos Fixos</h1>
-          <span style={{ color: '#6b7280' }}>Despesas recorrentes mensais</span>
+          <h1 className="page-title">Gastos Fixos</h1>
+          <p className="page-subtitle">Despesas recorrentes mensais e previsibilidade do caixa.</p>
         </div>
-        <button className="btn-primary" onClick={() => { resetForm(); setEditando(null); setShowModal(true); }}>
+        <button className="btn-primary" onClick={openCreateModal} disabled={loading}>
           <PlusOutlined /> Novo Gasto Fixo
         </button>
       </div>
 
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-        <div className="stat-card">
-          <div className="stat-label">Total de Gastos Fixos</div>
-          <div className="stat-value">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMensal)}</div>
+      <div className="stats-grid compact-summary">
+        <div className="stat-card despesa">
+          <div className="stat-label">Total mensal</div>
+          <div className="stat-value negative">{formatCurrency(totalMensal)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Quantidade</div>
           <div className="stat-value">{gastosFixos.length}</div>
         </div>
+        <div className="stat-card saldo">
+          <div className="stat-label">Próximo vencimento</div>
+          <div className="stat-value">{proximoVencimento ? `Dia ${proximoVencimento}` : '-'}</div>
+        </div>
       </div>
 
-      <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-        <AgGridReact
+      <div className="workspace-panel">
+        <div className="filters-bar compact">
+          <input
+            type="search"
+            value={quickSearch}
+            onChange={(e) => setQuickSearch(e.target.value)}
+            className="form-input search-input"
+            placeholder="Buscar gasto fixo, categoria, pagamento..."
+          />
+        </div>
+
+        <FinanceGrid
+          storageKey="finance-grid:gastos-fixos"
           rowData={gastosFixos}
           columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          pagination={false}
-          animateRows={true}
+          loading={loading}
+          quickFilterText={quickSearch}
+          height={460}
         />
       </div>
 
-      {gastosFixos.length === 0 && (
-        <div className="empty-state">
-          Nenhum gasto fixo cadastrado. Clique em "Novo Gasto Fixo" para começar.
-        </div>
-      )}
-
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal finance-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editando ? 'Editar Gasto Fixo' : 'Novo Gasto Fixo'}</h2>
             </div>
@@ -189,57 +231,61 @@ function GastosFixos() {
                   required
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Valor Mensal</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.valor}
-                  onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                  className="form-input"
-                  required
-                />
+              <div className="form-grid two-columns">
+                <div className="form-group">
+                  <label className="form-label">Valor Mensal</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.valor}
+                    onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Dia do Vencimento</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.dia_vencimento}
+                    onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
+                    className="form-input"
+                    required
+                  />
+                </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Dia do Vencimento</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={form.dia_vencimento}
-                  onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
-                  className="form-input"
-                  required
-                />
+              <div className="form-grid two-columns">
+                <div className="form-group">
+                  <label className="form-label">Tipo de Pagamento</label>
+                  <select
+                    value={form.tipo_pagamento}
+                    onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="pix">Pix</option>
+                    <option value="debito">Débito</option>
+                    <option value="credito">Crédito</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="dinheiro">Dinheiro</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Categoria</label>
+                  <select
+                    value={form.categoria_id}
+                    onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="">Selecione...</option>
+                    {categorias.map((categoria) => (
+                      <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Tipo de Pagamento</label>
-                <select
-                  value={form.tipo_pagamento}
-                  onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="pix">Pix</option>
-                  <option value="debito">Débito</option>
-                  <option value="credito">Crédito</option>
-                  <option value="boleto">Boleto</option>
-                  <option value="dinheiro">Dinheiro</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Categoria</label>
-                <select
-                  value={form.categoria_id}
-                  onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="">Selecione...</option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                 <button type="submit" className="btn-primary">Salvar</button>
               </div>
