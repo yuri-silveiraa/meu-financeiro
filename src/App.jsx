@@ -30,6 +30,7 @@ const menuItems = [
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const currentItem = menuItems.find(item => item.key === currentPage);
+  const hasElectronApi = typeof window !== 'undefined' && Boolean(window.api);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -42,6 +43,18 @@ function App() {
       default: return <Dashboard />;
     }
   };
+
+  if (!hasElectronApi) {
+    return (
+      <div className="runtime-warning">
+        <div>
+          <WalletOutlined />
+          <h1>Abra pelo Electron</h1>
+          <p>Este app usa APIs locais para banco de dados e arquivos. Rode <strong>npm run dev</strong> para abrir a janela correta.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Layout className="app-shell">

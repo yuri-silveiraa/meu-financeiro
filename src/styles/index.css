@@ -58,6 +58,42 @@ body {
   padding: 20px;
 }
 
+.runtime-warning {
+  align-items: center;
+  background: #f3f4f6;
+  color: #111827;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.runtime-warning > div {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-width: 460px;
+  padding: 28px;
+  text-align: center;
+}
+
+.runtime-warning svg {
+  color: #2563eb;
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.runtime-warning h1 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.runtime-warning p {
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .page-title {
   font-size: 24px;
   font-weight: 600;
