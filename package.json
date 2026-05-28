@@ -1,0 +1,58 @@
+{
+  "name": "meu-financeiro",
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder",
+    "electron:start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "App financeiro pessoal",
+  "dependencies": {
+    "@ant-design/icons": "^6.2.3",
+    "ag-grid-community": "^35.3.0",
+    "ag-grid-react": "^35.3.0",
+    "antd": "^6.4.2",
+    "better-sqlite3": "^9.4.3",
+    "lucide-react": "^0.330.0",
+    "papaparse": "^5.4.1",
+    "pdfjs-dist": "^5.6.205",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "recharts": "^2.12.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.1.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.meufinanceiro.app",
+    "productName": "Meu Financeiro",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
