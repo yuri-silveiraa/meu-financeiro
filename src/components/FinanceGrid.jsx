@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 const DEFAULT_OVERLAY = '<span class="finance-grid-overlay">Nenhum registro encontrado</span>';
 
