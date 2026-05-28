@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
-import { formatCurrency, getMonthName, getYearOptions } from '../utils/date';
+import { formatCurrency } from '../utils/currency';
+import { getMonthName, getYearOptions } from '../utils/date';
 
 function Relatorios() {
   const [transacoes, setTransacoes] = useState([]);

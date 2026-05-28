@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { formatCurrency, getMonthName, getYearOptions } from '../utils/date';
+import { formatCurrency } from '../utils/currency';
+import { getMonthName, getYearOptions } from '../utils/date';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#6b7280'];
 
