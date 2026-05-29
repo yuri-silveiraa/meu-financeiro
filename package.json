@@ -17,6 +17,7 @@
   "description": "App financeiro pessoal",
   "dependencies": {
     "@ant-design/icons": "^6.2.3",
+    "@napi-rs/canvas": "^0.1.100",
     "ag-grid-community": "^35.3.0",
     "ag-grid-react": "^35.3.0",
     "antd": "^6.4.2",

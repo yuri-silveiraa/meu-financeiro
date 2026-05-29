@@ -16,6 +16,37 @@ function addColumnIfMissing(tableName, columnName, definition) {
   }
 }
 
+let pdfNodePolyfillsLoaded = false;
+
+function ensurePdfNodePolyfills() {
+  if (pdfNodePolyfillsLoaded) return;
+
+  try {
+    const canvas = require('@napi-rs/canvas');
+    const requiredPolyfills = ['DOMMatrix', 'ImageData', 'Path2D'];
+    const missingPolyfills = [];
+
+    for (const polyfillName of requiredPolyfills) {
+      if (!globalThis[polyfillName] && canvas[polyfillName]) {
+        globalThis[polyfillName] = canvas[polyfillName];
+      }
+
+      if (!globalThis[polyfillName]) {
+        missingPolyfills.push(polyfillName);
+      }
+    }
+
+    if (missingPolyfills.length > 0) {
+      throw new Error(`Polyfills ausentes: ${missingPolyfills.join(', ')}`);
+    }
+
+    pdfNodePolyfillsLoaded = true;
+  } catch (error) {
+    console.error('Erro ao preparar polyfills do PDF.js:', error);
+    throw new Error('Não foi possível preparar o leitor de PDF. Rode npm install e tente novamente.');
+  }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -443,9 +474,14 @@ ipcMain.handle('dialog:openFile', async (event, tipo) => {
 
 ipcMain.handle('file:readPDF', async (event, filePath) => {
   try {
+    ensurePdfNodePolyfills();
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
     const data = new Uint8Array(fs.readFileSync(filePath));
-    const pdf = await pdfjs.getDocument({ data, useWorkerFetch: false }).promise;
+    const pdf = await pdfjs.getDocument({
+      data,
+      disableWorker: true,
+      useWorkerFetch: false
+    }).promise;
     let text = '';
 
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -456,7 +492,8 @@ ipcMain.handle('file:readPDF', async (event, filePath) => {
 
     return { success: true, text };
   } catch (error) {
-    return { success: false, error: error.message };
+    console.error('Erro ao ler PDF:', error);
+    return { success: false, error: error.message || 'Não foi possível ler o PDF selecionado.' };
   }
 });
 
