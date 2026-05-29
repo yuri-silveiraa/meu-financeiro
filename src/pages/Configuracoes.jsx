@@ -11,6 +11,7 @@ function Configuracoes() {
   const [showModalCategoria, setShowModalCategoria] = useState(false);
   const [showModalConta, setShowModalConta] = useState(false);
   const [editandoCategoria, setEditandoCategoria] = useState(null);
+  const [editandoConta, setEditandoConta] = useState(null);
   const [formCategoria, setFormCategoria] = useState({ nome: '', cor: '#3b82f6' });
   const [formConta, setFormConta] = useState({ nome: '', banco: '', tipo_conta: 'corrente', saldo_inicial: '' });
   const [loading, setLoading] = useState(false);
@@ -84,6 +85,29 @@ function Configuracoes() {
      loadData();
    };
 
+   const openNovaConta = () => {
+     setEditandoConta(null);
+     setFormConta({ nome: '', banco: '', tipo_conta: 'corrente', saldo_inicial: '' });
+     setShowModalConta(true);
+   };
+
+   const openEditarConta = (conta) => {
+     setEditandoConta(conta);
+     setFormConta({
+       nome: conta.nome,
+       banco: conta.banco || '',
+       tipo_conta: conta.tipo_conta || 'corrente',
+       saldo_inicial: conta.saldo_inicial?.toString() || ''
+     });
+     setShowModalConta(true);
+   };
+
+   const closeContaModal = () => {
+     setShowModalConta(false);
+     setEditandoConta(null);
+     setFormConta({ nome: '', banco: '', tipo_conta: 'corrente', saldo_inicial: '' });
+   };
+
    const handleSubmitConta = async (e) => {
      e.preventDefault();
      
@@ -100,9 +124,22 @@ function Configuracoes() {
        return;
      }
      
-     await window.api.addConta({ ...formConta, saldo_inicial: parseFloat(formConta.saldo_inicial || 0) });
-     setShowModalConta(false);
-     setFormConta({ nome: '', banco: '', tipo_conta: 'corrente', saldo_inicial: '' });
+     const conta = { ...formConta, saldo_inicial: parseFloat(formConta.saldo_inicial || 0) };
+     if (editandoConta) {
+       await window.api.updateConta({ ...conta, id: editandoConta.id });
+     } else {
+       await window.api.addConta(conta);
+     }
+
+     closeContaModal();
+     loadData();
+   };
+
+   const handleDeleteConta = async (conta) => {
+     const message = `Excluir a conta "${conta.nome}"? As transações ligadas a ela continuarão salvas, mas ficarão sem conta.`;
+     if (!confirm(message)) return;
+
+     await window.api.deleteConta(conta.id);
      loadData();
    };
 
@@ -154,7 +191,7 @@ function Configuracoes() {
         <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0 }}>Contas Bancárias</h3>
-              <button className="btn-secondary" onClick={() => setShowModalConta(true)} disabled={loading}>
+              <button className="btn-secondary" onClick={openNovaConta} disabled={loading}>
                 {loading ? 'Carregando...' : (
                   <>
                     <PlusOutlined /> Nova
@@ -165,9 +202,19 @@ function Configuracoes() {
           {contas.length > 0 ? (
             <div>
               {contas.map((c) => (
-                <div key={c.id} style={{ padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ fontWeight: 500 }}>{c.nome}</div>
-                  <div style={{ fontSize: 12, color: '#6b7280' }}>{c.banco} - {c.tipo_conta}</div>
+                <div key={c.id} className="settings-row">
+                  <div className="settings-row-main vertical">
+                    <span>{c.nome}</span>
+                    <span className="settings-row-description">{c.banco} - {c.tipo_conta}</span>
+                  </div>
+                  <div className="settings-row-actions">
+                    <button type="button" className="icon-button" aria-label="Editar conta" onClick={() => openEditarConta(c)}>
+                      <EditOutlined />
+                    </button>
+                    <button type="button" className="icon-button danger" aria-label="Excluir conta" onClick={() => handleDeleteConta(c)}>
+                      <DeleteOutlined />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -238,10 +285,10 @@ function Configuracoes() {
       )}
 
       {showModalConta && (
-        <div className="modal-overlay" onClick={() => setShowModalConta(false)}>
+        <div className="modal-overlay" onClick={closeContaModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Nova Conta</h2>
+              <h2 className="modal-title">{editandoConta ? 'Editar Conta' : 'Nova Conta'}</h2>
             </div>
             <form onSubmit={handleSubmitConta}>
               <div className="form-group">
@@ -287,7 +334,7 @@ function Configuracoes() {
                 />
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowModalConta(false)}>Cancelar</button>
+                <button type="button" className="btn-secondary" onClick={closeContaModal}>Cancelar</button>
                 <button type="submit" className="btn-primary">Salvar</button>
               </div>
             </form>

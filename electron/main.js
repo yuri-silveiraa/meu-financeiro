@@ -257,6 +257,22 @@ ipcMain.handle('db:addConta', (event, conta) => {
   return { id: result.lastInsertRowid, ...conta };
 });
 
+ipcMain.handle('db:updateConta', (event, conta) => {
+  db.prepare('UPDATE contas SET nome = ?, banco = ?, tipo_conta = ?, saldo_inicial = ? WHERE id = ?')
+    .run(conta.nome, conta.banco, conta.tipo_conta, conta.saldo_inicial || 0, conta.id);
+  return conta;
+});
+
+ipcMain.handle('db:deleteConta', (event, id) => {
+  const transaction = db.transaction((contaId) => {
+    db.prepare('UPDATE transacoes SET conta_id = NULL WHERE conta_id = ?').run(contaId);
+    db.prepare('DELETE FROM contas WHERE id = ?').run(contaId);
+  });
+
+  transaction(id);
+  return { success: true };
+});
+
 ipcMain.handle('db:getMetas', () => {
   return db.prepare('SELECT m.*, c.nome as categoria_nome FROM metas m LEFT JOIN categorias c ON m.categoria_id = c.id ORDER BY m.prazo').all();
 });

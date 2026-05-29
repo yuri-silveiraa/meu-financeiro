@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('api', {
 
   getContas: () => ipcRenderer.invoke('db:getContas'),
   addConta: (conta) => ipcRenderer.invoke('db:addConta', conta),
+  updateConta: (conta) => ipcRenderer.invoke('db:updateConta', conta),
+  deleteConta: (id) => ipcRenderer.invoke('db:deleteConta', id),
 
   getMetas: () => ipcRenderer.invoke('db:getMetas'),
   addMeta: (meta) => ipcRenderer.invoke('db:addMeta', meta),

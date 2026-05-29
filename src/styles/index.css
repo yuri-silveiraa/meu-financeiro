@@ -669,6 +669,18 @@ body {
   min-width: 0;
 }
 
+.settings-row-main.vertical {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-row-description {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .settings-color {
   border-radius: 4px;
   display: inline-block;

@@ -171,6 +171,19 @@ export function installBrowserApiMock() {
       saveState(state);
       return item;
     },
+    updateConta: async (conta) => {
+      const state = loadState();
+      state.contas = state.contas.map((item) => item.id === conta.id ? { ...item, ...conta } : item);
+      saveState(state);
+      return conta;
+    },
+    deleteConta: async (id) => {
+      const state = loadState();
+      state.transacoes = state.transacoes.map((item) => Number(item.conta_id) === Number(id) ? { ...item, conta_id: null } : item);
+      state.contas = state.contas.filter((item) => item.id !== id);
+      saveState(state);
+      return { success: true };
+    },
     getMetas: async () => loadState().metas,
     addMeta: async (meta) => {
       const state = loadState();
