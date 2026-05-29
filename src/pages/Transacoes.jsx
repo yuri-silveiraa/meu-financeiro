@@ -24,6 +24,32 @@ const initialForm = () => ({
   pago: false
 });
 
+const formatInputDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getCurrentMonthRange = () => {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  return {
+    dataInicio: formatInputDate(firstDay),
+    dataFim: formatInputDate(lastDay)
+  };
+};
+
+const initialFilters = () => ({
+  ...getCurrentMonthRange(),
+  tipo: '',
+  pago: '',
+  categoriaId: '',
+  contaId: ''
+});
+
 const formatDate = (value) => {
   if (!value) return '-';
   const [year, month, day] = value.split('-').map(Number);
@@ -36,14 +62,7 @@ function Transacoes() {
   const [contas, setContas] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
-  const [filtros, setFiltros] = useState({
-    dataInicio: '',
-    dataFim: '',
-    tipo: '',
-    pago: '',
-    categoriaId: '',
-    contaId: ''
-  });
+  const [filtros, setFiltros] = useState(initialFilters);
   const [quickSearch, setQuickSearch] = useState('');
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -341,14 +360,7 @@ function Transacoes() {
   };
 
   const clearFilters = () => {
-    setFiltros({
-      dataInicio: '',
-      dataFim: '',
-      tipo: '',
-      pago: '',
-      categoriaId: '',
-      contaId: ''
-    });
+    setFiltros(initialFilters());
     setQuickSearch('');
   };
 

@@ -58,7 +58,7 @@ function App() {
           onClick={({ key }) => setCurrentPage(key)}
         />
       </Sider>
-      <Layout>
+      <Layout className="app-main">
         <Header className="app-header">
           <span>{currentItem?.label}</span>
         </Header>
