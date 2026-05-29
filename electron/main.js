@@ -5,6 +5,17 @@ const Database = require('better-sqlite3');
 
 let db;
 
+function hasColumn(tableName, columnName) {
+  return db.prepare(`PRAGMA table_info(${tableName})`).all()
+    .some((column) => column.name === columnName);
+}
+
+function addColumnIfMissing(tableName, columnName, definition) {
+  if (!hasColumn(tableName, columnName)) {
+    db.prepare(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`).run();
+  }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -81,6 +92,28 @@ function initDatabase() {
       FOREIGN KEY (categoria_id) REFERENCES categorias(id)
     );
   `);
+
+  addColumnIfMissing('categorias', 'cor', "TEXT DEFAULT '#6366f1'");
+  addColumnIfMissing('categorias', 'icone', "TEXT DEFAULT 'folder'");
+
+  addColumnIfMissing('contas', 'banco', 'TEXT');
+  addColumnIfMissing('contas', 'tipo_conta', "TEXT DEFAULT 'corrente'");
+  addColumnIfMissing('contas', 'saldo_inicial', 'REAL DEFAULT 0');
+
+  addColumnIfMissing('transacoes', 'tipo_pagamento', 'TEXT');
+  addColumnIfMissing('transacoes', 'categoria_id', 'INTEGER');
+  addColumnIfMissing('transacoes', 'conta_id', 'INTEGER');
+  addColumnIfMissing('transacoes', 'pago', 'INTEGER DEFAULT 0');
+  addColumnIfMissing('transacoes', 'gasto_fixo_id', 'INTEGER');
+
+  addColumnIfMissing('metas', 'valor_atual', 'REAL DEFAULT 0');
+  addColumnIfMissing('metas', 'prazo', 'TEXT');
+  addColumnIfMissing('metas', 'categoria_id', 'INTEGER');
+
+  addColumnIfMissing('gastos_fixos', 'tipo_pagamento', 'TEXT');
+  addColumnIfMissing('gastos_fixos', 'categoria_id', 'INTEGER');
+  addColumnIfMissing('gastos_fixos', 'ativo', 'INTEGER DEFAULT 1');
+  addColumnIfMissing('gastos_fixos', 'data_criacao', 'TEXT');
 
   const countCategorias = db.prepare('SELECT COUNT(*) as count FROM categorias').get();
   if (countCategorias.count === 0) {
