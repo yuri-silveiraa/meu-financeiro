@@ -148,6 +148,21 @@ export function installBrowserApiMock() {
       saveState(state);
       return item;
     },
+    updateCategoria: async (categoria) => {
+      const state = loadState();
+      state.categorias = state.categorias.map((item) => item.id === categoria.id ? { ...item, ...categoria } : item);
+      saveState(state);
+      return categoria;
+    },
+    deleteCategoria: async (id) => {
+      const state = loadState();
+      state.transacoes = state.transacoes.map((item) => Number(item.categoria_id) === Number(id) ? { ...item, categoria_id: null } : item);
+      state.metas = state.metas.map((item) => Number(item.categoria_id) === Number(id) ? { ...item, categoria_id: null } : item);
+      state.gastosFixos = state.gastosFixos.map((item) => Number(item.categoria_id) === Number(id) ? { ...item, categoria_id: null } : item);
+      state.categorias = state.categorias.filter((item) => item.id !== id);
+      saveState(state);
+      return { success: true };
+    },
     getContas: async () => loadState().contas.sort((a, b) => a.nome.localeCompare(b.nome)),
     addConta: async (conta) => {
       const state = loadState();

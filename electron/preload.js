@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('api', {
 
   getCategorias: () => ipcRenderer.invoke('db:getCategorias'),
   addCategoria: (categoria) => ipcRenderer.invoke('db:addCategoria', categoria),
+  updateCategoria: (categoria) => ipcRenderer.invoke('db:updateCategoria', categoria),
+  deleteCategoria: (id) => ipcRenderer.invoke('db:deleteCategoria', id),
 
   getContas: () => ipcRenderer.invoke('db:getContas'),
   addConta: (conta) => ipcRenderer.invoke('db:addConta', conta),

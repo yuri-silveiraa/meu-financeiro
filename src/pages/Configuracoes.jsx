@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { validateRequired } from '../utils/validation';
 
@@ -10,6 +10,7 @@ function Configuracoes() {
   const [contas, setContas] = useState([]);
   const [showModalCategoria, setShowModalCategoria] = useState(false);
   const [showModalConta, setShowModalConta] = useState(false);
+  const [editandoCategoria, setEditandoCategoria] = useState(null);
   const [formCategoria, setFormCategoria] = useState({ nome: '', cor: '#3b82f6' });
   const [formConta, setFormConta] = useState({ nome: '', banco: '', tipo_conta: 'corrente', saldo_inicial: '' });
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,24 @@ function Configuracoes() {
     }
   };
 
+   const openNovaCategoria = () => {
+     setEditandoCategoria(null);
+     setFormCategoria({ nome: '', cor: '#3b82f6' });
+     setShowModalCategoria(true);
+   };
+
+   const openEditarCategoria = (categoria) => {
+     setEditandoCategoria(categoria);
+     setFormCategoria({ nome: categoria.nome, cor: categoria.cor || '#3b82f6' });
+     setShowModalCategoria(true);
+   };
+
+   const closeCategoriaModal = () => {
+     setShowModalCategoria(false);
+     setEditandoCategoria(null);
+     setFormCategoria({ nome: '', cor: '#3b82f6' });
+   };
+
    const handleSubmitCategoria = async (e) => {
      e.preventDefault();
      
@@ -47,9 +66,21 @@ function Configuracoes() {
        return;
      }
      
-     await window.api.addCategoria(formCategoria);
-     setShowModalCategoria(false);
-     setFormCategoria({ nome: '', cor: '#3b82f6' });
+     if (editandoCategoria) {
+       await window.api.updateCategoria({ ...formCategoria, id: editandoCategoria.id, icone: editandoCategoria.icone || 'folder' });
+     } else {
+       await window.api.addCategoria(formCategoria);
+     }
+
+     closeCategoriaModal();
+     loadData();
+   };
+
+   const handleDeleteCategoria = async (categoria) => {
+     const message = `Excluir a categoria "${categoria.nome}"? Transações, metas e gastos fixos ligados a ela ficarão sem categoria.`;
+     if (!confirm(message)) return;
+
+     await window.api.deleteCategoria(categoria.id);
      loadData();
    };
 
@@ -88,7 +119,7 @@ function Configuracoes() {
          <div className="card">
            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 style={{ margin: 0 }}>Categorias</h3>
-              <button className="btn-secondary" onClick={() => setShowModalCategoria(true)} disabled={loading}>
+              <button className="btn-secondary" onClick={openNovaCategoria} disabled={loading}>
                 {loading ? 'Carregando...' : (
                   <>
                     <PlusOutlined /> Nova
@@ -99,9 +130,19 @@ function Configuracoes() {
           {categorias.length > 0 ? (
             <div>
               {categorias.map((c) => (
-                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
-                  <span style={{ width: 16, height: 16, borderRadius: 4, background: c.cor }}></span>
-                  <span>{c.nome}</span>
+                <div key={c.id} className="settings-row">
+                  <div className="settings-row-main">
+                    <span className="settings-color" style={{ background: c.cor }}></span>
+                    <span>{c.nome}</span>
+                  </div>
+                  <div className="settings-row-actions">
+                    <button type="button" className="icon-button" aria-label="Editar categoria" onClick={() => openEditarCategoria(c)}>
+                      <EditOutlined />
+                    </button>
+                    <button type="button" className="icon-button danger" aria-label="Excluir categoria" onClick={() => handleDeleteCategoria(c)}>
+                      <DeleteOutlined />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -151,10 +192,10 @@ function Configuracoes() {
       </div>
 
       {showModalCategoria && (
-        <div className="modal-overlay" onClick={() => setShowModalCategoria(false)}>
+        <div className="modal-overlay" onClick={closeCategoriaModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Nova Categoria</h2>
+              <h2 className="modal-title">{editandoCategoria ? 'Editar Categoria' : 'Nova Categoria'}</h2>
             </div>
             <form onSubmit={handleSubmitCategoria}>
               <div className="form-group">
@@ -188,7 +229,7 @@ function Configuracoes() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowModalCategoria(false)}>Cancelar</button>
+                <button type="button" className="btn-secondary" onClick={closeCategoriaModal}>Cancelar</button>
                 <button type="submit" className="btn-primary">Salvar</button>
               </div>
             </form>

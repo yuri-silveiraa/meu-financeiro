@@ -229,6 +229,24 @@ ipcMain.handle('db:addCategoria', (event, categoria) => {
   return { id: result.lastInsertRowid, ...categoria };
 });
 
+ipcMain.handle('db:updateCategoria', (event, categoria) => {
+  db.prepare('UPDATE categorias SET nome = ?, cor = ?, icone = ? WHERE id = ?')
+    .run(categoria.nome, categoria.cor, categoria.icone || 'folder', categoria.id);
+  return categoria;
+});
+
+ipcMain.handle('db:deleteCategoria', (event, id) => {
+  const transaction = db.transaction((categoriaId) => {
+    db.prepare('UPDATE transacoes SET categoria_id = NULL WHERE categoria_id = ?').run(categoriaId);
+    db.prepare('UPDATE metas SET categoria_id = NULL WHERE categoria_id = ?').run(categoriaId);
+    db.prepare('UPDATE gastos_fixos SET categoria_id = NULL WHERE categoria_id = ?').run(categoriaId);
+    db.prepare('DELETE FROM categorias WHERE id = ?').run(categoriaId);
+  });
+
+  transaction(id);
+  return { success: true };
+});
+
 ipcMain.handle('db:getContas', () => {
   return db.prepare('SELECT * FROM contas ORDER BY nome').all();
 });
