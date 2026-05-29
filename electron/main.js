@@ -409,9 +409,9 @@ ipcMain.handle('dialog:openFile', async (event, tipo) => {
 
 ipcMain.handle('file:readPDF', async (event, filePath) => {
   try {
-    const pdfjs = require('pdfjs-dist');
-    const data = fs.readFileSync(filePath);
-    const pdf = await pdfjs.getDocument({ data }).promise;
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const data = new Uint8Array(fs.readFileSync(filePath));
+    const pdf = await pdfjs.getDocument({ data, useWorkerFetch: false }).promise;
     let text = '';
 
     for (let i = 1; i <= pdf.numPages; i++) {
