@@ -142,6 +142,10 @@ function FinanceGrid({
         </div>
       </div>
 
+      <div className="finance-grid-hint">
+        Dica: arraste os headers para reordenar · redimensione pelas bordas · use o menu <strong>⋮</strong> para mostrar/esconder colunas
+      </div>
+
       {selectionActions && selectedRows.length > 0 && (
         <div className="selection-bar">
           <span>{selectedRows.length} selecionado{selectedRows.length > 1 ? 's' : ''}</span>
