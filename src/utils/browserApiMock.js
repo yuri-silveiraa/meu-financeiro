@@ -14,15 +14,15 @@ const initialState = {
     { id: 1, nome: 'Conta principal', banco: 'Banco demo', tipo_conta: 'corrente', saldo_inicial: 0 }
   ],
   transacoes: [
-    { id: 1, data: today, descricao: 'Salario', valor: 5200, tipo: 'receita', tipo_pagamento: null, categoria_id: 5, conta_id: 1, pago: 1 },
-    { id: 2, data: today, descricao: 'Mercado', valor: 248.9, tipo: 'despesa', tipo_pagamento: 'debito', categoria_id: 1, conta_id: 1, pago: 1 },
-    { id: 3, data: today, descricao: 'Aluguel', valor: 1500, tipo: 'despesa', tipo_pagamento: 'pix', categoria_id: 3, conta_id: 1, pago: 0 }
+    { id: 1, data: today, descricao: 'Salario', valor: 5200, tipo: 'receita', tipo_pagamento: null, categoria_id: 5, conta_id: 1, pago: 1, parcela_atual: null },
+    { id: 2, data: today, descricao: 'Mercado', valor: 248.9, tipo: 'despesa', tipo_pagamento: 'debito', categoria_id: 1, conta_id: 1, pago: 1, parcela_atual: null },
+    { id: 3, data: today, descricao: 'Aluguel', valor: 1500, tipo: 'despesa', tipo_pagamento: 'pix', categoria_id: 3, conta_id: 1, pago: 0, parcela_atual: null }
   ],
   metas: [
     { id: 1, nome: 'Reserva', valor_meta: 10000, valor_atual: 2800, prazo: '', categoria_id: null }
   ],
   gastosFixos: [
-    { id: 1, nome: 'Internet', valor: 120, dia_vencimento: 10, tipo_pagamento: 'credito', categoria_id: 3, ativo: 1 }
+    { id: 1, nome: 'Internet', valor: 120, dia_vencimento: 10, tipo_pagamento: 'credito', categoria_id: 3, conta_id: null, total_parcelas: null, tipo: 'despesa', ativo: 1 }
   ]
 };
 
@@ -46,12 +46,18 @@ function nextId(items) {
 function withRelations(state, transacao) {
   const categoria = state.categorias.find((item) => item.id === Number(transacao.categoria_id));
   const conta = state.contas.find((item) => item.id === Number(transacao.conta_id));
+  const gastoFixo = transacao.gasto_fixo_id
+    ? state.gastosFixos.find((item) => item.id === Number(transacao.gasto_fixo_id))
+    : null;
 
   return {
     ...transacao,
     categoria_nome: categoria?.nome || null,
     categoria_cor: categoria?.cor || null,
-    conta_nome: conta?.nome || null
+    conta_nome: conta?.nome || null,
+    gasto_fixo_nome: gastoFixo?.nome || null,
+    parcela_atual: transacao.parcela_atual || null,
+    total_parcelas: gastoFixo?.total_parcelas || null
   };
 }
 
@@ -73,10 +79,12 @@ function getGastosFixosWithRelations(state) {
     .sort((a, b) => a.dia_vencimento - b.dia_vencimento)
     .map((item) => {
       const categoria = state.categorias.find((cat) => cat.id === Number(item.categoria_id));
+      const conta = state.contas.find((ct) => ct.id === Number(item.conta_id));
       return {
         ...item,
         categoria_nome: categoria?.nome || null,
-        categoria_cor: categoria?.cor || null
+        categoria_cor: categoria?.cor || null,
+        conta_nome: conta?.nome || null
       };
     });
 }
@@ -180,6 +188,7 @@ export function installBrowserApiMock() {
     deleteConta: async (id) => {
       const state = loadState();
       state.transacoes = state.transacoes.map((item) => Number(item.conta_id) === Number(id) ? { ...item, conta_id: null } : item);
+      state.gastosFixos = state.gastosFixos.map((item) => Number(item.conta_id) === Number(id) ? { ...item, conta_id: null } : item);
       state.contas = state.contas.filter((item) => item.id !== id);
       saveState(state);
       return { success: true };
@@ -201,14 +210,118 @@ export function installBrowserApiMock() {
     getGastosFixos: async () => getGastosFixosWithRelations(loadState()),
     addGastoFixo: async (gastoFixo) => {
       const state = loadState();
-      const item = { ...gastoFixo, id: nextId(state.gastosFixos), ativo: 1 };
+      const id = nextId(state.gastosFixos);
+      const totalParcelas = gastoFixo.total_parcelas || null;
+      const contaId = gastoFixo.conta_id || null;
+      const tipo = gastoFixo.tipo || 'despesa';
+
+      const item = { ...gastoFixo, id, conta_id: contaId, total_parcelas: totalParcelas, tipo, ativo: 1 };
       state.gastosFixos.push(item);
+
+      const hoje = new Date();
+      const ano = hoje.getFullYear();
+      const mes = hoje.getMonth() + 1;
+      const dia = gastoFixo.dia_vencimento;
+      let parcelaAtual = 1;
+
+      for (let m = mes; m <= 12; m++) {
+        if (totalParcelas && parcelaAtual > totalParcelas) break;
+
+        const dataTransacao = `${ano}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        state.transacoes.push({
+          id: nextId(state.transacoes),
+          data: dataTransacao,
+          descricao: gastoFixo.nome,
+          valor: gastoFixo.valor,
+          tipo,
+          tipo_pagamento: gastoFixo.tipo_pagamento || 'pix',
+          categoria_id: gastoFixo.categoria_id || null,
+          conta_id: contaId,
+          pago: 0,
+          gasto_fixo_id: id,
+          parcela_atual: totalParcelas ? parcelaAtual : null
+        });
+        parcelaAtual++;
+      }
+
       saveState(state);
-      return { ...item, transacoesCriadas: 0 };
+      return { ...item, transacoesCriadas: parcelaAtual - 1 };
     },
     updateGastoFixo: async (gastoFixo) => {
       const state = loadState();
-      state.gastosFixos = state.gastosFixos.map((item) => item.id === gastoFixo.id ? { ...item, ...gastoFixo } : item);
+      const totalParcelas = gastoFixo.total_parcelas || null;
+      const contaId = gastoFixo.conta_id || null;
+      const tipo = gastoFixo.tipo || 'despesa';
+
+      state.gastosFixos = state.gastosFixos.map((item) =>
+        item.id === gastoFixo.id ? { ...item, ...gastoFixo, conta_id: contaId, total_parcelas: totalParcelas, tipo } : item
+      );
+
+      state.transacoes = state.transacoes.map((item) => {
+        if (Number(item.gasto_fixo_id) === Number(gastoFixo.id) && !item.pago) {
+          return {
+            ...item,
+            valor: gastoFixo.valor,
+            descricao: gastoFixo.nome,
+            tipo,
+            tipo_pagamento: gastoFixo.tipo_pagamento || 'pix',
+            categoria_id: gastoFixo.categoria_id || null,
+            conta_id: contaId
+          };
+        }
+        return item;
+      });
+
+      if (totalParcelas) {
+        const pagas = state.transacoes.filter(
+          (t) => Number(t.gasto_fixo_id) === Number(gastoFixo.id) && t.pago
+        ).length;
+
+        const naoPagasCount = state.transacoes.filter(
+          (t) => Number(t.gasto_fixo_id) === Number(gastoFixo.id) && !t.pago
+        ).length;
+
+        const faltam = totalParcelas - pagas - naoPagasCount;
+
+        if (faltam > 0) {
+          const hoje = new Date();
+          const ano = hoje.getFullYear();
+          const dia = gastoFixo.dia_vencimento;
+          let parcelaBase = pagas + 1;
+          const ultimaParcela = state.transacoes
+            .filter((t) => Number(t.gasto_fixo_id) === Number(gastoFixo.id) && t.pago && t.parcela_atual)
+            .sort((a, b) => b.parcela_atual - a.parcela_atual)[0];
+          if (ultimaParcela) parcelaBase = ultimaParcela.parcela_atual + 1;
+
+          let criadas = 0;
+          for (let m = hoje.getMonth() + 1; m <= 12; m++) {
+            if (criadas >= faltam) break;
+
+            const dataTransacao = `${ano}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+            const existe = state.transacoes.find(
+              (t) => Number(t.gasto_fixo_id) === Number(gastoFixo.id) && t.data === dataTransacao
+            );
+
+            if (!existe) {
+              state.transacoes.push({
+                id: nextId(state.transacoes),
+                data: dataTransacao,
+                descricao: gastoFixo.nome,
+                valor: gastoFixo.valor,
+                tipo,
+                tipo_pagamento: gastoFixo.tipo_pagamento || 'pix',
+                categoria_id: gastoFixo.categoria_id || null,
+                conta_id: contaId,
+                pago: 0,
+                gasto_fixo_id: gastoFixo.id,
+                parcela_atual: parcelaBase + criadas
+              });
+              criadas++;
+            }
+          }
+        }
+      }
+
       saveState(state);
       return gastoFixo;
     },
@@ -219,7 +332,7 @@ export function installBrowserApiMock() {
       return { success: true };
     },
     getEstatisticas: async (mes, ano) => getEstatisticas(loadState(), mes, ano),
-    getPrevisoes: async () => getGastosFixosWithRelations(loadState()).map((item) => ({ categoria: item.categoria_nome || item.nome, cor: item.categoria_cor, media_mensal: item.valor })),
+    getPrevisoes: async () => getGastosFixosWithRelations(loadState()).map((item) => ({ categoria: item.categoria_nome || item.nome, cor: item.categoria_cor, tipo: item.tipo || 'despesa', media_mensal: item.valor })),
     openFile: async () => ({ canceled: true, filePaths: [] }),
     readPDF: async () => ({ success: false, error: 'Leitura de PDF disponivel apenas no Electron.' })
   };

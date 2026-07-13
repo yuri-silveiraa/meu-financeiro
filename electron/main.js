@@ -145,6 +145,11 @@ function initDatabase() {
   addColumnIfMissing('gastos_fixos', 'categoria_id', 'INTEGER');
   addColumnIfMissing('gastos_fixos', 'ativo', 'INTEGER DEFAULT 1');
   addColumnIfMissing('gastos_fixos', 'data_criacao', 'TEXT');
+  addColumnIfMissing('gastos_fixos', 'total_parcelas', 'INTEGER');
+  addColumnIfMissing('gastos_fixos', 'conta_id', 'INTEGER');
+  addColumnIfMissing('gastos_fixos', 'tipo', "TEXT DEFAULT 'despesa'");
+
+  addColumnIfMissing('transacoes', 'parcela_atual', 'INTEGER');
 
   const countCategorias = db.prepare('SELECT COUNT(*) as count FROM categorias').get();
   if (countCategorias.count === 0) {
@@ -160,7 +165,8 @@ function initDatabase() {
 }
 
 ipcMain.handle('db:getTransacoes', (event, filtros) => {
-  let query = `SELECT t.*, c.nome as categoria_nome, c.cor as categoria_cor, ct.nome as conta_nome, gf.nome as gasto_fixo_nome
+  let query = `SELECT t.*, c.nome as categoria_nome, c.cor as categoria_cor, ct.nome as conta_nome,
+    gf.nome as gasto_fixo_nome, t.parcela_atual, gf.total_parcelas
     FROM transacoes t
     LEFT JOIN categorias c ON t.categoria_id = c.id
     LEFT JOIN contas ct ON t.conta_id = ct.id
@@ -322,9 +328,11 @@ ipcMain.handle('db:updateMeta', (event, meta) => {
 
 ipcMain.handle('db:getGastosFixos', () => {
   return db.prepare(`
-    SELECT gf.*, c.nome as categoria_nome, c.cor as categoria_cor
+    SELECT gf.*, c.nome as categoria_nome, c.cor as categoria_cor,
+           ct.nome as conta_nome
     FROM gastos_fixos gf
     LEFT JOIN categorias c ON gf.categoria_id = c.id
+    LEFT JOIN contas ct ON gf.conta_id = ct.id
     WHERE gf.ativo = 1
     ORDER BY gf.dia_vencimento
   `).all();
@@ -335,10 +343,13 @@ ipcMain.handle('db:addGastoFixo', (event, gastoFixo) => {
   const ano = hoje.getFullYear();
   const mes = hoje.getMonth() + 1;
   const dia = gastoFixo.dia_vencimento;
+  const totalParcelas = gastoFixo.total_parcelas || null;
+  const contaId = gastoFixo.conta_id || null;
+  const tipo = gastoFixo.tipo || 'despesa';
 
   const stmt = db.prepare(`
-    INSERT INTO gastos_fixos (nome, valor, dia_vencimento, tipo_pagamento, categoria_id, ativo, data_criacao)
-    VALUES (?, ?, ?, ?, ?, 1, ?)
+    INSERT INTO gastos_fixos (nome, valor, dia_vencimento, tipo_pagamento, categoria_id, conta_id, total_parcelas, tipo, ativo, data_criacao)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   `);
   const result = stmt.run(
     gastoFixo.nome,
@@ -346,34 +357,49 @@ ipcMain.handle('db:addGastoFixo', (event, gastoFixo) => {
     gastoFixo.dia_vencimento,
     gastoFixo.tipo_pagamento || null,
     gastoFixo.categoria_id || null,
+    contaId,
+    totalParcelas,
+    tipo,
     `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
   );
 
   const gastoId = result.lastInsertRowid;
 
   let transacoesCriadas = 0;
+  let parcelaAtual = 1;
+
   for (let m = mes; m <= 12; m++) {
+    if (totalParcelas && parcelaAtual > totalParcelas) break;
+
     const dataTransacao = `${ano}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
     db.prepare(`
-      INSERT INTO transacoes (data, descricao, valor, tipo, tipo_pagamento, categoria_id, pago, gasto_fixo_id)
-      VALUES (?, ?, ?, 'despesa', ?, ?, 0, ?)
+      INSERT INTO transacoes (data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id, pago, gasto_fixo_id, parcela_atual)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `).run(
       dataTransacao,
       gastoFixo.nome,
       gastoFixo.valor,
+      tipo,
       gastoFixo.tipo_pagamento || 'pix',
       gastoFixo.categoria_id || null,
-      gastoId
+      contaId,
+      gastoId,
+      totalParcelas ? parcelaAtual : null
     );
     transacoesCriadas++;
+    parcelaAtual++;
   }
 
   return { id: gastoId, ...gastoFixo, transacoesCriadas };
 });
 
 ipcMain.handle('db:updateGastoFixo', (event, gastoFixo) => {
+  const totalParcelas = gastoFixo.total_parcelas || null;
+  const contaId = gastoFixo.conta_id || null;
+  const tipo = gastoFixo.tipo || 'despesa';
+
   db.prepare(`
-    UPDATE gastos_fixos SET nome = ?, valor = ?, dia_vencimento = ?, tipo_pagamento = ?, categoria_id = ?
+    UPDATE gastos_fixos SET nome = ?, valor = ?, dia_vencimento = ?, tipo_pagamento = ?, categoria_id = ?, conta_id = ?, total_parcelas = ?, tipo = ?
     WHERE id = ?
   `).run(
     gastoFixo.nome,
@@ -381,19 +407,76 @@ ipcMain.handle('db:updateGastoFixo', (event, gastoFixo) => {
     gastoFixo.dia_vencimento,
     gastoFixo.tipo_pagamento || null,
     gastoFixo.categoria_id || null,
+    contaId,
+    totalParcelas,
+    tipo,
     gastoFixo.id
   );
 
   db.prepare(`
-    UPDATE transacoes SET valor = ?, descricao = ?, tipo_pagamento = ?, categoria_id = ?
+    UPDATE transacoes SET valor = ?, descricao = ?, tipo = ?, tipo_pagamento = ?, categoria_id = ?, conta_id = ?
     WHERE gasto_fixo_id = ? AND pago = 0
   `).run(
     gastoFixo.valor,
     gastoFixo.nome,
+    tipo,
     gastoFixo.tipo_pagamento || 'pix',
     gastoFixo.categoria_id || null,
+    contaId,
     gastoFixo.id
   );
+
+  if (totalParcelas) {
+    const pagas = db.prepare(
+      'SELECT COUNT(*) as count FROM transacoes WHERE gasto_fixo_id = ? AND pago = 1'
+    ).get(gastoFixo.id).count;
+
+    const naoPagas = db.prepare(
+      'SELECT COUNT(*) as count FROM transacoes WHERE gasto_fixo_id = ? AND pago = 0'
+    ).get(gastoFixo.id).count;
+
+    if (naoPagas < (totalParcelas - pagas)) {
+      const hoje = new Date();
+      let proximoMes = hoje.getMonth() + 1;
+      const ano = hoje.getFullYear();
+      const dia = gastoFixo.dia_vencimento;
+      let parcelaBase = pagas + 1;
+      const ultimaTransacao = db.prepare(
+        'SELECT MAX(parcela_atual) as max_parcela FROM transacoes WHERE gasto_fixo_id = ? AND pago = 1'
+      ).get(gastoFixo.id);
+      if (ultimaTransacao && ultimaTransacao.max_parcela) {
+        parcelaBase = ultimaTransacao.max_parcela + 1;
+      }
+
+      let criadas = 0;
+      for (let m = proximoMes; m <= 12; m++) {
+        if (parcelaBase + criadas > totalParcelas) break;
+
+        const dataTransacao = `${ano}-${String(m).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        const existe = db.prepare(
+          'SELECT id FROM transacoes WHERE gasto_fixo_id = ? AND data = ?'
+        ).get(gastoFixo.id, dataTransacao);
+
+        if (!existe) {
+          db.prepare(`
+            INSERT INTO transacoes (data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id, pago, gasto_fixo_id, parcela_atual)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+          `).run(
+            dataTransacao,
+            gastoFixo.nome,
+            gastoFixo.valor,
+            tipo,
+            gastoFixo.tipo_pagamento || 'pix',
+            gastoFixo.categoria_id || null,
+            contaId,
+            gastoFixo.id,
+            parcelaBase + criadas
+          );
+          criadas++;
+        }
+      }
+    }
+  }
 
   return gastoFixo;
 });
@@ -451,12 +534,12 @@ ipcMain.handle('db:getEstatisticas', (event, mes, ano) => {
 
 ipcMain.handle('db:getPrevisoes', () => {
   return db.prepare(`
-    SELECT c.nome as categoria, c.cor, AVG(t.valor) as media_mensal
+    SELECT c.nome as categoria, c.cor, t.tipo, AVG(t.valor) as media_mensal
     FROM transacoes t
-    JOIN categorias c ON t.categoria_id = c.id
-    WHERE t.tipo = 'despesa'
-    GROUP BY c.id
-    ORDER BY media_mensal DESC
+    LEFT JOIN categorias c ON t.categoria_id = c.id
+    WHERE t.gasto_fixo_id IS NOT NULL
+    GROUP BY c.id, t.tipo
+    ORDER BY t.tipo, media_mensal DESC
   `).all();
 });
 

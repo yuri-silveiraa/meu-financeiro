@@ -21,7 +21,7 @@ const { Header, Sider, Content } = Layout;
 const menuItems = [
   { key: 'dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: 'transacoes', icon: <SwapOutlined />, label: 'Transações' },
-  { key: 'gastosfixos', icon: <CalendarOutlined />, label: 'Gastos Fixos' },
+  { key: 'gastosfixos', icon: <CalendarOutlined />, label: 'Fixos' },
   { key: 'relatorios', icon: <FileTextOutlined />, label: 'Relatórios' },
   { key: 'metas', icon: <FlagOutlined />, label: 'Metas' },
   { key: 'configuracoes', icon: <SettingOutlined />, label: 'Configurações' },

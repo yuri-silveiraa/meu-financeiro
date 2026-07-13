@@ -174,7 +174,26 @@ function Transacoes() {
       field: 'descricao',
       flex: 1.6,
       minWidth: 220,
-      valueFormatter: (params) => params.value || '-'
+      cellRenderer: (params) => {
+        const parts = [];
+        parts.push(<span key="desc">{params.value || '-'}</span>);
+
+        if (params.data.gasto_fixo_nome && params.data.parcela_atual) {
+          parts.push(
+            <span key="parcela" className="tipo-badge parcela">
+              {params.data.parcela_atual}/{params.data.total_parcelas}
+            </span>
+          );
+        } else if (params.data.gasto_fixo_nome) {
+          parts.push(
+            <span key="recorrente" className="tipo-badge recorrente">
+              Recorrente
+            </span>
+          );
+        }
+
+        return <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{parts}</div>;
+      }
     },
     {
       headerName: 'Categoria',

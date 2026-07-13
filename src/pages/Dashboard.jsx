@@ -112,18 +112,26 @@ function Dashboard() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 16 }}>Previsão de Gastos Mensais por Categoria</h3>
+        <h3 style={{ marginBottom: 16 }}>Previsão Mensal</h3>
         {previsoes.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={previsoes} layout="vertical">
               <XAxis type="number" />
               <YAxis type="category" dataKey="categoria" width={100} />
-              <Tooltip formatter={(value) => formatCurrency(value)} />
-              <Bar dataKey="media_mensal" fill="#8b5cf6" />
+              <Tooltip formatter={(value, name, props) => formatCurrency(value)} />
+              <Legend />
+              <Bar dataKey="media_mensal" name="Média Mensal" radius={[0, 4, 4, 0]}>
+                {previsoes.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.tipo === 'receita' ? '#22c55e' : '#ef4444'}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="empty-state">Adicione transações para ver previsões</div>
+          <div className="empty-state">Adicione itens fixos para ver previsões</div>
         )}
       </div>
     </div>
