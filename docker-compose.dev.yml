@@ -1,0 +1,71 @@
+services:
+  frontend:
+    build:
+      context: ./packages/frontend
+      args:
+        VITE_API_URL: http://localhost:3001
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-SEU_CLIENT_ID_AQUI}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - dev-network
+
+  backend:
+    build: ./packages/backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://meu_financeiro:dev_password@db:5432/meu_financeiro
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-SEU_CLIENT_ID_AQUI}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-SEU_CLIENT_SECRET_AQUI}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-local-mudar-em-producao}
+      - FRONTEND_URL=http://localhost:8080
+      - BOT_API_KEY=dev-bot-secret-key
+      - PORT=3001
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dev-network
+
+  bot:
+    build: ./packages/bot
+    environment:
+      - BACKEND_URL=http://backend:3001
+      - BOT_API_KEY=dev-bot-secret-key
+      - BOT_PORT=3002
+      - SESSION_DIR=/app/whatsapp-session
+    volumes:
+      - whatsapp-session:/app/whatsapp-session
+    depends_on:
+      - backend
+    networks:
+      - dev-network
+
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=meu_financeiro
+      - POSTGRES_USER=meu_financeiro
+      - POSTGRES_PASSWORD=dev_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meu_financeiro"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dev-network
+
+networks:
+  dev-network:
+    driver: bridge
+
+volumes:
+  pgdata-dev:
+  whatsapp-session:

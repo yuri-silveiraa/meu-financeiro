@@ -1,0 +1,19 @@
+services:
+  db-test:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata-test:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=meu_financeiro_test
+      - POSTGRES_USER=meu_financeiro_test
+      - POSTGRES_PASSWORD=test_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meu_financeiro_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata-test:

@@ -1,0 +1,88 @@
+services:
+  frontend:
+    build:
+      context: ./packages/frontend
+      args:
+        VITE_API_URL: ""
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - traefik
+      - internal
+
+  backend:
+    build: ./packages/backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://meu_financeiro:${POSTGRES_PASSWORD}@db:5432/meu_financeiro
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - BOT_API_KEY=${BOT_API_KEY}
+      - FRONTEND_URL=https://${DOMAIN_NAME}
+      - NODE_ENV=production
+      - PORT=3001
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN_NAME}`) && (PathPrefix(`/api`) || PathPrefix(`/auth`) || PathPrefix(`/bot`))"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.services.backend.loadbalancer.server.port=3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - traefik
+      - internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  bot:
+    build: ./packages/bot
+    restart: unless-stopped
+    environment:
+      - BACKEND_URL=http://backend:3001
+      - BOT_API_KEY=${BOT_API_KEY}
+      - BOT_PORT=3002
+      - SESSION_DIR=/app/whatsapp-session
+    volumes:
+      - whatsapp-session:/app/whatsapp-session
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=meu_financeiro
+      - POSTGRES_USER=meu_financeiro
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meu_financeiro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+networks:
+  traefik:
+    external: true
+  internal:
+    driver: bridge
+
+volumes:
+  pgdata:
+  whatsapp-session:
