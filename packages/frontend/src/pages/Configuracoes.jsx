@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { Modal, message } from 'antd';
 import { formatCurrency } from '../utils/currency';
 import { validateRequired } from '../utils/validation';
 import { api } from '../services/api';
@@ -65,9 +66,10 @@ function Configuracoes() {
      
      const nomeError = validateRequired(formCategoria.nome, 'Nome');
      if (nomeError) {
-       alert(nomeError);
+       message.warning(nomeError);
        return;
      }
+
      
      try {
        if (editandoCategoria) {
@@ -85,16 +87,23 @@ function Configuracoes() {
    };
 
    const handleDeleteCategoria = async (categoria) => {
-     const message = `Excluir a categoria "${categoria.nome}"? Transações, metas e gastos fixos ligados a ela ficarão sem categoria.`;
-     if (!confirm(message)) return;
-
-     try {
-       await api.deleteCategoria(categoria.id);
-       loadData();
-     } catch (err) {
-       console.error('Erro ao excluir categoria:', err);
-       setError('Erro ao excluir categoria');
-     }
+     Modal.confirm({
+       title: `Excluir categoria "${categoria.nome}"?`,
+       content: 'Transações, metas e gastos fixos ligados a ela ficarão sem categoria.',
+       okText: 'Excluir',
+       okType: 'danger',
+       cancelText: 'Cancelar',
+       onOk: async () => {
+         try {
+           await api.deleteCategoria(categoria.id);
+           loadData();
+           message.success('Categoria excluída com sucesso');
+         } catch (err) {
+           console.error('Erro ao excluir categoria:', err);
+           message.error('Erro ao excluir categoria');
+         }
+       }
+     });
    };
 
    const openNovaConta = () => {
@@ -122,47 +131,57 @@ function Configuracoes() {
 
    const handleSubmitConta = async (e) => {
      e.preventDefault();
-     
+
      const nomeError = validateRequired(formConta.nome, 'Nome da Conta');
      if (nomeError) {
-       alert(nomeError);
+       message.warning(nomeError);
        return;
      }
-     
+
      const bancoError = validateRequired(formConta.banco, 'Banco');
      if (bancoError) {
-       alert(bancoError);
+       message.warning(bancoError);
        return;
      }
-     
+
      const conta = { ...formConta, saldo_inicial: parseFloat(formConta.saldo_inicial || 0) };
      try {
        if (editandoConta) {
          await api.updateConta(editandoConta.id, conta);
+         message.success('Conta atualizada com sucesso');
        } else {
          await api.addConta(conta);
+         message.success('Conta criada com sucesso');
        }
 
        closeContaModal();
        loadData();
      } catch (err) {
        console.error('Erro ao salvar conta:', err);
-       setError('Erro ao salvar conta');
+       message.error('Erro ao salvar conta');
      }
    };
 
    const handleDeleteConta = async (conta) => {
-     const message = `Excluir a conta "${conta.nome}"? As transações ligadas a ela continuarão salvas, mas ficarão sem conta.`;
-     if (!confirm(message)) return;
-
-     try {
-       await api.deleteConta(conta.id);
-       loadData();
-     } catch (err) {
-       console.error('Erro ao excluir conta:', err);
-       setError('Erro ao excluir conta');
-     }
+     Modal.confirm({
+       title: `Excluir conta "${conta.nome}"?`,
+       content: 'As transações ligadas a ela continuarão salvas, mas ficarão sem conta.',
+       okText: 'Excluir',
+       okType: 'danger',
+       cancelText: 'Cancelar',
+       onOk: async () => {
+         try {
+           await api.deleteConta(conta.id);
+           loadData();
+           message.success('Conta excluída com sucesso');
+         } catch (err) {
+           console.error('Erro ao excluir conta:', err);
+           message.error('Erro ao excluir conta');
+         }
+       }
+     });
    };
+
 
    return (
      <div>
@@ -295,109 +314,109 @@ function Configuracoes() {
         </div>
       </div>
 
-      {showModalCategoria && (
-        <div className="modal-overlay" onClick={closeCategoriaModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{editandoCategoria ? 'Editar Categoria' : 'Nova Categoria'}</h2>
-            </div>
-            <form onSubmit={handleSubmitCategoria}>
-              <div className="form-group">
-                <label className="form-label">Nome</label>
-                <input
-                  type="text"
-                  value={formCategoria.nome}
-                  onChange={(e) => setFormCategoria({ ...formCategoria, nome: e.target.value })}
-                  className="form-input"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Cor</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {CORES.map((cor) => (
-                    <button
-                      key={cor}
-                      type="button"
-                      onClick={() => setFormCategoria({ ...formCategoria, cor })}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        background: cor,
-                        border: formCategoria.cor === cor ? '3px solid #1f2937' : 'none',
-                        cursor: 'pointer'
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-secondary" onClick={closeCategoriaModal}>Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar</button>
-              </div>
-            </form>
+      <Modal
+        open={showModalCategoria}
+        onCancel={closeCategoriaModal}
+        title={editandoCategoria ? 'Editar Categoria' : 'Nova Categoria'}
+        footer={null}
+        width={420}
+        destroyOnHide
+      >
+        <form onSubmit={handleSubmitCategoria} style={{ paddingTop: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Nome</label>
+            <input
+              type="text"
+              value={formCategoria.nome}
+              onChange={(e) => setFormCategoria({ ...formCategoria, nome: e.target.value })}
+              className="form-input"
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="form-group">
+            <label className="form-label">Cor</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {CORES.map((cor) => (
+                <button
+                  key={cor}
+                  type="button"
+                  onClick={() => setFormCategoria({ ...formCategoria, cor })}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: cor,
+                    border: formCategoria.cor === cor ? '3px solid #1f2937' : 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={closeCategoriaModal}>Cancelar</button>
+            <button type="submit" className="btn-primary">Salvar</button>
+          </div>
+        </form>
+      </Modal>
 
-      {showModalConta && (
-        <div className="modal-overlay" onClick={closeContaModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{editandoConta ? 'Editar Conta' : 'Nova Conta'}</h2>
-            </div>
-            <form onSubmit={handleSubmitConta}>
-              <div className="form-group">
-                <label className="form-label">Nome da Conta</label>
-                <input
-                  type="text"
-                  value={formConta.nome}
-                  onChange={(e) => setFormConta({ ...formConta, nome: e.target.value })}
-                  className="form-input"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Banco</label>
-                <input
-                  type="text"
-                  value={formConta.banco}
-                  onChange={(e) => setFormConta({ ...formConta, banco: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Tipo de Conta</label>
-                <select
-                  value={formConta.tipo_conta}
-                  onChange={(e) => setFormConta({ ...formConta, tipo_conta: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="corrente">Conta Corrente</option>
-                  <option value="poupanca">Poupança</option>
-                  <option value="investimento">Investimento</option>
-                  <option value="carteira">Carteira</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Saldo Inicial</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formConta.saldo_inicial}
-                  onChange={(e) => setFormConta({ ...formConta, saldo_inicial: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-secondary" onClick={closeContaModal}>Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar</button>
-              </div>
-            </form>
+      <Modal
+        open={showModalConta}
+        onCancel={closeContaModal}
+        title={editandoConta ? 'Editar Conta' : 'Nova Conta'}
+        footer={null}
+        width={480}
+        destroyOnHide
+      >
+        <form onSubmit={handleSubmitConta} style={{ paddingTop: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Nome da Conta</label>
+            <input
+              type="text"
+              value={formConta.nome}
+              onChange={(e) => setFormConta({ ...formConta, nome: e.target.value })}
+              className="form-input"
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="form-group">
+            <label className="form-label">Banco</label>
+            <input
+              type="text"
+              value={formConta.banco}
+              onChange={(e) => setFormConta({ ...formConta, banco: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tipo de Conta</label>
+            <select
+              value={formConta.tipo_conta}
+              onChange={(e) => setFormConta({ ...formConta, tipo_conta: e.target.value })}
+              className="form-select"
+            >
+              <option value="corrente">Conta Corrente</option>
+              <option value="poupanca">Poupança</option>
+              <option value="investimento">Investimento</option>
+              <option value="carteira">Carteira</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Saldo Inicial</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formConta.saldo_inicial}
+              onChange={(e) => setFormConta({ ...formConta, saldo_inicial: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={closeContaModal}>Cancelar</button>
+            <button type="submit" className="btn-primary">Salvar</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { Modal, message } from 'antd';
 import FinanceGrid from '../components/FinanceGrid';
 import { formatCurrency } from '../utils/currency';
 import { api } from '../services/api';
+import EmptyState from '../components/EmptyState';
+
 
 const initialForm = () => ({
   nome: '',
@@ -78,15 +81,23 @@ function GastosFixos() {
   }, []);
 
   const handleDelete = useCallback(async (id) => {
-    if (confirm('Tem certeza que deseja excluir? As transações já criadas permanecerão.')) {
-      try {
-        await api.deleteGastoFixo(id);
-        loadData();
-      } catch (err) {
-        console.error('Erro ao excluir gasto fixo:', err);
-        alert('Erro ao excluir gasto fixo');
+    Modal.confirm({
+      title: 'Excluir item fixo',
+      content: 'Tem certeza? As transações já criadas permanecerão.',
+      okText: 'Excluir',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await api.deleteGastoFixo(id);
+          loadData();
+          message.success('Item excluído com sucesso');
+        } catch (err) {
+          console.error('Erro ao excluir gasto fixo:', err);
+          message.error('Erro ao excluir item fixo');
+        }
       }
-    }
+    });
   }, [loadData]);
 
   const gastosFiltrados = useMemo(() => {
@@ -206,10 +217,11 @@ function GastosFixos() {
     try {
       if (editando) {
         await api.updateGastoFixo(editando.id, dados);
+        message.success('Item fixo atualizado com sucesso');
       } else {
         const result = await api.addGastoFixo(dados);
         const label = dados.tipo === 'receita' ? 'Receita fixa' : 'Gasto fixo';
-        alert(`${label} criado(a)! ${result.transacoesCriadas} transações geradas para os próximos meses.`);
+        message.success(`${label} criado(a)! ${result.transacoesCriadas} transações geradas.`);
       }
 
       setShowModal(false);
@@ -218,7 +230,7 @@ function GastosFixos() {
       loadData();
     } catch (err) {
       console.error('Erro ao salvar gasto fixo:', err);
-      alert('Erro ao salvar gasto fixo');
+      message.error('Erro ao salvar item fixo');
     }
   };
 
@@ -316,126 +328,126 @@ function GastosFixos() {
         />
       </div>
 
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal finance-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">
-                {editando
-                  ? (editando.tipo === 'receita' ? 'Editar Receita Fixa' : 'Editar Gasto Fixo')
-                  : (form.tipo === 'receita' ? 'Nova Receita Fixa' : 'Novo Gasto Fixo')}
-              </h2>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Nome</label>
-                <input
-                  type="text"
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  className="form-input"
-                  placeholder={placeholderNome[form.tipo || abaAtiva]}
-                  required
-                />
-              </div>
-              <div className="form-grid three-columns">
-                <div className="form-group">
-                  <label className="form-label">Valor Mensal</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valor}
-                    onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Dia do Vencimento</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={form.dia_vencimento}
-                    onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Parcelas</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={form.total_parcelas}
-                    onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
-                    className="form-input"
-                    placeholder="Recorrente"
-                  />
-                  <span className="form-hint">Vazio = recorrente para sempre</span>
-                </div>
-              </div>
-              <div className="form-grid three-columns">
-                <div className="form-group">
-                  <label className="form-label">Tipo</label>
-                  <select
-                    value={form.tipo}
-                    onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="despesa">Despesa</option>
-                    <option value="receita">Receita</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Tipo de Pagamento</label>
-                  <select
-                    value={form.tipo_pagamento}
-                    onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="pix">Pix</option>
-                    <option value="debito">Débito</option>
-                    <option value="credito">Crédito</option>
-                    <option value="boleto">Boleto</option>
-                    <option value="dinheiro">Dinheiro</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Categoria</label>
-                  <select
-                    value={form.categoria_id}
-                    onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="">Selecione...</option>
-                    {categorias.map((categoria) => (
-                      <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Conta</label>
-                <select
-                  value={form.conta_id}
-                  onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="">Nenhuma conta</option>
-                  {contas.map((conta) => (
-                    <option key={conta.id} value={conta.id}>{conta.nome}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar</button>
-              </div>
-            </form>
+      <Modal
+        open={showModal}
+        onCancel={() => { setShowModal(false); setEditando(null); resetForm(); }}
+        title={
+          editando
+            ? (editando.tipo === 'receita' ? 'Editar Receita Fixa' : 'Editar Gasto Fixo')
+            : (form.tipo === 'receita' ? 'Nova Receita Fixa' : 'Novo Gasto Fixo')
+        }
+        footer={null}
+        width={640}
+        destroyOnHide
+      >
+        <form onSubmit={handleSubmit} style={{ paddingTop: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Nome</label>
+            <input
+              type="text"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              className="form-input"
+              placeholder={placeholderNome[form.tipo || abaAtiva]}
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="form-grid three-columns">
+            <div className="form-group">
+              <label className="form-label">Valor Mensal</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Dia do Vencimento</label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={form.dia_vencimento}
+                onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Parcelas</label>
+              <input
+                type="number"
+                min="1"
+                value={form.total_parcelas}
+                onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
+                className="form-input"
+                placeholder="Recorrente"
+              />
+              <span className="form-hint">Vazio = recorrente para sempre</span>
+            </div>
+          </div>
+          <div className="form-grid three-columns">
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <select
+                value={form.tipo}
+                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                className="form-select"
+              >
+                <option value="despesa">Despesa</option>
+                <option value="receita">Receita</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Tipo de Pagamento</label>
+              <select
+                value={form.tipo_pagamento}
+                onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
+                className="form-select"
+              >
+                <option value="pix">Pix</option>
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+                <option value="boleto">Boleto</option>
+                <option value="dinheiro">Dinheiro</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Categoria</label>
+              <select
+                value={form.categoria_id}
+                onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
+                className="form-select"
+              >
+                <option value="">Selecione...</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Conta</label>
+            <select
+              value={form.conta_id}
+              onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
+              className="form-select"
+            >
+              <option value="">Nenhuma conta</option>
+              {contas.map((conta) => (
+                <option key={conta.id} value={conta.id}>{conta.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}>Cancelar</button>
+            <button type="submit" className="btn-primary">Salvar</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

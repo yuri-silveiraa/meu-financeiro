@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Modal, message } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { validateRequired } from '../utils/validation';
 import { api } from '../services/api';
+import EmptyState from '../components/EmptyState';
 
 function Metas() {
   const [metas, setMetas] = useState([]);
@@ -43,6 +45,13 @@ function Metas() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const nomeError = validateRequired(form.nome, 'Nome');
+    if (nomeError) {
+      message.warning(nomeError);
+      return;
+    }
+
     const dados = {
       ...form,
       valor_meta: parseFloat(form.valor_meta),
@@ -53,8 +62,10 @@ function Metas() {
     try {
       if (editando) {
         await api.updateMeta(editando.id, dados);
+        message.success('Meta atualizada com sucesso');
       } else {
         await api.addMeta(dados);
+        message.success('Meta criada com sucesso');
       }
 
       setShowModal(false);
@@ -63,7 +74,7 @@ function Metas() {
       loadData();
     } catch (err) {
       console.error('Erro ao salvar meta:', err);
-      setError('Erro ao salvar meta');
+      message.error('Erro ao salvar meta');
     }
   };
 
@@ -94,28 +105,45 @@ function Metas() {
     return Math.min(100, (parseFloat(meta.valor_atual) / parseFloat(meta.valor_meta)) * 100);
   };
 
-   return (
-     <div>
-       {error && (
-         <div style={{ background: '#fee2e2', color: '#dc2626', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
-           {error}
-         </div>
-       )}
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-           <h1 className="page-title" style={{ margin: 0 }}>Metas de Economia</h1>
-           <button className="btn-primary" onClick={() => { resetForm(); setEditando(null); setShowModal(true); }} disabled={loading}>
-             {loading ? 'Carregando...' : (
-               <>
-                 <PlusOutlined /> Nova Meta
-               </>
-             )}
-           </button>
-         </div>
+  const getProgressColor = (progresso, prazo) => {
+    if (progresso >= 100) return '#22c55e';
+    if (prazo) {
+      const hoje = new Date();
+      const dataPrazo = new Date(prazo);
+      if (dataPrazo < hoje) return '#ef4444'; // prazo vencido
+    }
+    if (progresso >= 80) return '#3b82f6';
+    if (progresso >= 30) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  const isPrazoVencido = (prazo) => {
+    if (!prazo) return false;
+    return new Date(prazo) < new Date();
+  };
+
+  return (
+    <div>
+      {error && <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h1 className="page-title" style={{ margin: 0 }}>Metas de Economia</h1>
+        <button
+          className="btn-primary"
+          onClick={() => { resetForm(); setEditando(null); setShowModal(true); }}
+          disabled={loading}
+        >
+          <PlusOutlined /> Nova Meta
+        </button>
+      </div>
 
       {metas.length > 0 ? (
         <div className="metas-grid">
           {metas.map((meta) => {
             const progresso = calcularProgresso(meta);
+            const progressColor = getProgressColor(progresso, meta.prazo);
+            const vencido = isPrazoVencido(meta.prazo);
+
             return (
               <div key={meta.id} className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -129,22 +157,30 @@ function Metas() {
                     <EditOutlined />
                   </button>
                 </div>
+
                 <div style={{ marginTop: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ color: '#6b7280' }}>Progresso</span>
-                    <span style={{ fontWeight: 500 }}>{progresso.toFixed(1)}%</span>
+                    <span style={{ fontWeight: 500, color: progressColor }}>{progresso.toFixed(1)}%</span>
                   </div>
                   <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${progresso}%`, background: progresso >= 100 ? '#22c55e' : '#3b82f6' }}></div>
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${progresso}%`, background: progressColor, transition: 'width 0.4s ease' }}
+                    />
                   </div>
                 </div>
+
                 <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
                   <span>Atual: <strong>{formatCurrency(meta.valor_atual)}</strong></span>
                   <span>Meta: <strong>{formatCurrency(meta.valor_meta)}</strong></span>
                 </div>
+
                 {meta.prazo && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
+                  <div style={{ marginTop: 8, fontSize: 12, color: vencido ? '#ef4444' : '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {vencido && <span>⚠️</span>}
                     Prazo: {new Date(meta.prazo).toLocaleDateString('pt-BR')}
+                    {vencido && <span style={{ fontWeight: 600 }}> — Vencido</span>}
                   </div>
                 )}
               </div>
@@ -152,79 +188,83 @@ function Metas() {
           })}
         </div>
       ) : (
-        <div className="empty-state">
-          Nenhuma meta criada. Clique em "Nova Meta" para começar.
-        </div>
+        <EmptyState
+          icon="🎯"
+          title="Sem metas ainda"
+          description="Defina objetivos financeiros para acompanhar seu progresso de economia."
+          onAction={() => { resetForm(); setEditando(null); setShowModal(true); }}
+          actionLabel="Nova Meta"
+        />
       )}
 
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{editando ? 'Editar Meta' : 'Nova Meta'}</h2>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Nome da Meta</label>
-                <input
-                  type="text"
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                  className="form-input"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Valor da Meta</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.valor_meta}
-                  onChange={(e) => setForm({ ...form, valor_meta: e.target.value })}
-                  className="form-input"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Valor Atual</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={form.valor_atual}
-                  onChange={(e) => setForm({ ...form, valor_atual: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Prazo</label>
-                <input
-                  type="date"
-                  value={form.prazo}
-                  onChange={(e) => setForm({ ...form, prazo: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Categoria (opcional)</label>
-                <select
-                  value={form.categoria_id}
-                  onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="">Todas as categorias</option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar</button>
-              </div>
-            </form>
+      <Modal
+        open={showModal}
+        onCancel={() => { setShowModal(false); setEditando(null); resetForm(); }}
+        title={editando ? 'Editar Meta' : 'Nova Meta'}
+        footer={null}
+        width={480}
+        destroyOnHide
+      >
+        <form onSubmit={handleSubmit} style={{ paddingTop: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Nome da Meta</label>
+            <input
+              type="text"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              className="form-input"
+              required
+            />
           </div>
-        </div>
-      )}
+          <div className="form-group">
+            <label className="form-label">Valor da Meta</label>
+            <input
+              type="number"
+              step="0.01"
+              value={form.valor_meta}
+              onChange={(e) => setForm({ ...form, valor_meta: e.target.value })}
+              className="form-input"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Valor Atual</label>
+            <input
+              type="number"
+              step="0.01"
+              value={form.valor_atual}
+              onChange={(e) => setForm({ ...form, valor_atual: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Prazo</label>
+            <input
+              type="date"
+              value={form.prazo}
+              onChange={(e) => setForm({ ...form, prazo: e.target.value })}
+              className="form-input"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Categoria (opcional)</label>
+            <select
+              value={form.categoria_id}
+              onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
+              className="form-select"
+            >
+              <option value="">Todas as categorias</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}>Cancelar</button>
+            <button type="submit" className="btn-primary">Salvar</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1,17 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
+import { Modal, message } from 'antd';
 import {
-  CheckOutlined,
-  CloseOutlined,
-  DeleteOutlined,
-  EditOutlined,
   PlusOutlined,
-  UploadOutlined
+  UploadOutlined,
 } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { validateTransacao } from '../utils/validation';
 import { api } from '../services/api';
 import TransactionCard from '../components/TransactionCard';
+import EmptyState from '../components/EmptyState';
 
 const initialForm = () => ({
   data: new Date().toISOString().split('T')[0],
@@ -35,7 +33,6 @@ const getCurrentMonthRange = () => {
   const today = new Date();
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
   return {
     dataInicio: formatInputDate(firstDay),
     dataFim: formatInputDate(lastDay)
@@ -50,18 +47,13 @@ const initialFilters = () => ({
   contaId: ''
 });
 
-const formatDate = (value) => {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('pt-BR');
-};
-
 function Transacoes() {
   const [transacoes, setTransacoes] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [contas, setContas] = useState([]);
+  const [filtros, setFiltros] = useState(initialFilters);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
-  const [filtros, setFiltros] = useState(initialFilters);
   const [quickSearch, setQuickSearch] = useState('');
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -97,19 +89,9 @@ function Transacoes() {
       loadData();
     } catch (err) {
       console.error('Erro ao alterar status:', err);
-      setError('Erro ao alterar status de pagamento');
+      message.error('Erro ao alterar status de pagamento');
     }
   }, [loadData]);
-
-  const resetForm = () => {
-    setForm(initialForm());
-  };
-
-  const openCreateModal = () => {
-    resetForm();
-    setEditando(null);
-    setShowModal(true);
-  };
 
   const handleEdit = useCallback((transacao) => {
     setEditando(transacao);
@@ -118,33 +100,51 @@ function Transacoes() {
       descricao: transacao.descricao || '',
       valor: transacao.valor.toString(),
       tipo: transacao.tipo,
-      tipo_pagamento: transacao.tipo_pagamento || '',
+      tipo_pagamento: transacao.tipo_pagamento || 'debito',
       categoria_id: transacao.categoria_id || '',
       conta_id: transacao.conta_id || '',
-      pago: transacao.pago === 1
+      pago: transacao.pago || false
     });
     setShowModal(true);
   }, []);
 
   const handleDelete = useCallback(async (id) => {
-    if (confirm('Tem certeza que deseja excluir esta transação?')) {
-      try {
-        await api.deleteTransacao(id);
-        loadData();
-      } catch (err) {
-        console.error('Erro ao excluir transação:', err);
-        setError('Erro ao excluir transação');
+    Modal.confirm({
+      title: 'Excluir transação',
+      content: 'Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.',
+      okText: 'Excluir',
+      okType: 'danger',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          await api.deleteTransacao(id);
+          loadData();
+          message.success('Transação excluída com sucesso');
+        } catch (err) {
+          console.error('Erro ao excluir transação:', err);
+          message.error('Erro ao excluir transação');
+        }
       }
-    }
+    });
   }, [loadData]);
 
+  const resetForm = () => {
+    setForm(initialForm());
+    setEditando(null);
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setEditando(null);
+    setShowModal(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const errors = validateTransacao(form);
     if (Object.keys(errors).length > 0) {
-      alert(Object.values(errors)[0]);
+      message.warning(Object.values(errors)[0]);
       return;
     }
 
@@ -157,8 +157,10 @@ function Transacoes() {
     try {
       if (editando) {
         await api.updateTransacao(editando.id, dados);
+        message.success('Transação atualizada com sucesso');
       } else {
         await api.addTransacao(dados);
+        message.success('Transação criada com sucesso');
       }
 
       setShowModal(false);
@@ -167,7 +169,7 @@ function Transacoes() {
       loadData();
     } catch (err) {
       console.error('Erro ao salvar transação:', err);
-      setError('Erro ao salvar transação');
+      message.error('Erro ao salvar transação');
     }
   };
 
@@ -186,7 +188,7 @@ function Transacoes() {
           tipo: parseFloat(row.valor || row.Valor || row.value) > 0 ? 'receita' : 'despesa',
           tipo_pagamento: (row.tipo_pagamento || row.tipo || 'debito').toLowerCase(),
           descricao_lower: (row.descricao || row.Descricao || '').toLowerCase(),
-          pago: parseFloat(row.valor || row.Valor || row.value) > 0 ? true : false
+          pago: parseFloat(row.valor || row.Valor || row.value) > 0
         })).map(transacao => {
           const categoria = categorias.find(c => transacao.descricao_lower.includes(c.nome.toLowerCase()));
           return { ...transacao, categoria_id: categoria?.id || null };
@@ -205,8 +207,11 @@ function Transacoes() {
         }
 
         loadData();
-        const msg = `Importadas ${importadas} transações` + (erros > 0 ? ` (${erros} erros)` : '');
-        alert(msg);
+        if (erros > 0) {
+          message.warning(`${importadas} transações importadas (${erros} com erro)`);
+        } else {
+          message.success(`${importadas} transações importadas com sucesso!`);
+        }
       }
     });
     e.target.value = '';
@@ -217,32 +222,15 @@ function Transacoes() {
     setQuickSearch('');
   };
 
-  const updateSelectedPaidStatus = async (selectedRows, pago, clearSelection) => {
-    try {
-      await Promise.all(selectedRows.map((transacao) => (
-        api.updateTransacao(transacao.id, { ...transacao, pago })
-      )));
-      clearSelection();
-      loadData();
-    } catch (err) {
-      console.error('Erro ao atualizar transações:', err);
-      setError('Erro ao atualizar transações selecionadas');
-    }
-  };
-
-  const deleteSelectedRows = async (selectedRows, clearSelection) => {
-    const plural = selectedRows.length > 1 ? 'transações selecionadas' : 'transação selecionada';
-    if (!confirm(`Tem certeza que deseja excluir ${selectedRows.length} ${plural}?`)) return;
-
-    try {
-      await Promise.all(selectedRows.map((transacao) => api.deleteTransacao(transacao.id)));
-      clearSelection();
-      loadData();
-    } catch (err) {
-      console.error('Erro ao excluir transações:', err);
-      setError('Erro ao excluir transações selecionadas');
-    }
-  };
+  const filteredTransacoes = transacoes.filter(t => {
+    if (!quickSearch) return true;
+    const q = quickSearch.toLowerCase();
+    return (
+      (t.descricao || '').toLowerCase().includes(q) ||
+      (t.categoria_nome || '').toLowerCase().includes(q) ||
+      (t.conta_nome || '').toLowerCase().includes(q)
+    );
+  });
 
   const totalReceitas = transacoes.filter(t => t.tipo === 'receita' && t.pago).reduce((sum, t) => sum + parseFloat(t.valor), 0);
   const totalDespesasPagas = transacoes.filter(t => t.tipo === 'despesa' && t.pago).reduce((sum, t) => sum + parseFloat(t.valor), 0);
@@ -257,7 +245,7 @@ function Transacoes() {
       <div className="workspace-header">
         <div>
           <h1 className="page-title">Transações</h1>
-          <p className="page-subtitle">Controle entradas, saídas e pendências com filtros salvos no grid.</p>
+          <p className="page-subtitle">Controle entradas, saídas e pendências.</p>
         </div>
         <div className="toolbar">
           <label className="btn-secondary" style={{ cursor: 'pointer' }}>
@@ -342,132 +330,146 @@ function Transacoes() {
         </div>
 
         <div className="transaction-list">
-          {transacoes.length === 0 ? (
+          {loading ? (
             <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
-              Nenhuma transação encontrada
+              Carregando...
             </div>
+          ) : filteredTransacoes.length === 0 ? (
+            <EmptyState
+              icon="💳"
+              title="Nenhuma transação encontrada"
+              description="Registre sua primeira receita ou despesa para começar."
+              onAction={openCreateModal}
+              actionLabel="Nova Transação"
+            />
           ) : (
-            <div style={{ overflow: 'auto', '-webkit-overflow-scrolling': 'touch' }}>
-              {transacoes.map((transacao) => (
-                <TransactionCard key={transacao.id} transaction={transacao} />
-              ))}
-            </div>
+            filteredTransacoes.map((transacao) => (
+              <TransactionCard
+                key={transacao.id}
+                transaction={transacao}
+                onTogglePago={handleTogglePago}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            ))
           )}
         </div>
+      </div>
 
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal finance-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">{editando ? 'Editar Transação' : 'Nova Transação'}</h2>
+      <Modal
+        open={showModal}
+        onCancel={() => { setShowModal(false); resetForm(); }}
+        title={editando ? 'Editar Transação' : 'Nova Transação'}
+        footer={null}
+        width={600}
+        destroyOnHide
+      >
+        <form onSubmit={handleSubmit} style={{ paddingTop: 8 }}>
+          <div className="form-grid two-columns">
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <select
+                value={form.tipo}
+                onChange={(e) => setForm({ ...form, tipo: e.target.value, tipo_pagamento: e.target.value === 'receita' ? '' : 'debito' })}
+                className="form-select"
+              >
+                <option value="despesa">Despesa</option>
+                <option value="receita">Receita</option>
+              </select>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-grid two-columns">
-                <div className="form-group">
-                  <label className="form-label">Tipo</label>
-                  <select
-                    value={form.tipo}
-                    onChange={(e) => setForm({ ...form, tipo: e.target.value, tipo_pagamento: e.target.value === 'receita' ? '' : 'debito' })}
-                    className="form-select"
-                  >
-                    <option value="despesa">Despesa</option>
-                    <option value="receita">Receita</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Valor</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.valor}
-                    onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Data</label>
-                  <input
-                    type="date"
-                    value={form.data}
-                    onChange={(e) => setForm({ ...form, data: e.target.value })}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Categoria</label>
-                  <select
-                    value={form.categoria_id}
-                    onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
-                    className="form-select"
-                  >
-                    <option value="">Selecione...</option>
-                    {categorias.map((categoria) => (
-                      <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            <div className="form-group">
+              <label className="form-label">Valor</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Data</label>
+              <input
+                type="date"
+                value={form.data}
+                onChange={(e) => setForm({ ...form, data: e.target.value })}
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Categoria</label>
+              <select
+                value={form.categoria_id}
+                onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
+                className="form-select"
+              >
+                <option value="">Selecione...</option>
+                {categorias.map((categoria) => (
+                  <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
+          <div className="form-group">
+            <label className="form-label">Descrição</label>
+            <input
+              type="text"
+              value={form.descricao}
+              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              className="form-input"
+            />
+          </div>
+
+          {form.tipo === 'despesa' && (
+            <div className="form-grid two-columns">
               <div className="form-group">
-                <label className="form-label">Descrição</label>
-                <input
-                  type="text"
-                  value={form.descricao}
-                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                  className="form-input"
-                />
-              </div>
-
-              {form.tipo === 'despesa' && (
-                <div className="form-grid two-columns">
-                  <div className="form-group">
-                    <label className="form-label">Tipo de Pagamento</label>
-                    <select
-                      value={form.tipo_pagamento}
-                      onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
-                      className="form-select"
-                    >
-                      <option value="debito">Débito</option>
-                      <option value="credito">Crédito</option>
-                      <option value="pix">Pix</option>
-                      <option value="dinheiro">Dinheiro</option>
-                      <option value="boleto">Boleto</option>
-                    </select>
-                  </div>
-                  <label className="checkbox-card">
-                    <input
-                      type="checkbox"
-                      checked={form.pago}
-                      onChange={(e) => setForm({ ...form, pago: e.target.checked })}
-                    />
-                    <span>Marcar como pago</span>
-                  </label>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Conta</label>
+                <label className="form-label">Tipo de Pagamento</label>
                 <select
-                  value={form.conta_id}
-                  onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
+                  value={form.tipo_pagamento}
+                  onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
                   className="form-select"
                 >
-                  <option value="">Selecione...</option>
-                  {contas.map((conta) => (
-                    <option key={conta.id} value={conta.id}>{conta.nome}</option>
-                  ))}
+                  <option value="debito">Débito</option>
+                  <option value="credito">Crédito</option>
+                  <option value="pix">Pix</option>
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="boleto">Boleto</option>
                 </select>
               </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary">Salvar</button>
-              </div>
-            </form>
+              <label className="checkbox-card">
+                <input
+                  type="checkbox"
+                  checked={form.pago}
+                  onChange={(e) => setForm({ ...form, pago: e.target.checked })}
+                />
+                <span>Marcar como pago</span>
+              </label>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Conta</label>
+            <select
+              value={form.conta_id}
+              onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
+              className="form-select"
+            >
+              <option value="">Selecione...</option>
+              {contas.map((conta) => (
+                <option key={conta.id} value={conta.id}>{conta.nome}</option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancelar</button>
+            <button type="submit" className="btn-primary">Salvar</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

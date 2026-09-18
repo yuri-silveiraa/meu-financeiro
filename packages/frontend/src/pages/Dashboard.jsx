@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { formatCurrency } from '../utils/currency';
 import { getMonthName, getYearOptions } from '../utils/date';
 import { api } from '../services/api';
+import EmptyState from '../components/EmptyState';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#6b7280'];
 
@@ -12,7 +13,6 @@ function Dashboard() {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
   const [yearOptions, setYearOptions] = useState([]);
-
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -41,16 +41,32 @@ function Dashboard() {
     }
   };
 
+  const irParaMesAnterior = () => {
+    if (mes === 1) {
+      setMes(12);
+      setAno((a) => a - 1);
+    } else {
+      setMes((m) => m - 1);
+    }
+  };
+
+  const irParaProximoMes = () => {
+    if (mes === 12) {
+      setMes(1);
+      setAno((a) => a + 1);
+    } else {
+      setMes((m) => m + 1);
+    }
+  };
+
   return (
     <div>
-      {error && (
-        <div style={{ background: '#fee2e2', color: '#dc2626', padding: '12px', borderRadius: '4px', marginBottom: '16px' }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
       <h1 className="page-title">Dashboard</h1>
 
-      <div className="dashboard-filters">
+      <div className="dashboard-nav">
+        <button className="nav-arrow" onClick={irParaMesAnterior} aria-label="Mês anterior">‹</button>
         <select value={mes} onChange={(e) => setMes(Number(e.target.value))} className="form-select">
           {Array.from({ length: 12 }, (_, i) => (
             <option key={i} value={i + 1}>{getMonthName(i)}</option>
@@ -61,6 +77,7 @@ function Dashboard() {
             <option key={year} value={year}>{year}</option>
           ))}
         </select>
+        <button className="nav-arrow" onClick={irParaProximoMes} aria-label="Próximo mês">›</button>
       </div>
 
       <div className="stats-grid">
@@ -108,7 +125,11 @@ function Dashboard() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="empty-state">Nenhuma despesa registrada</div>
+            <EmptyState
+              icon="📉"
+              title="Sem despesas no mês"
+              description="Adicione transações para visualizar os gastos por categoria."
+            />
           )}
         </div>
 
@@ -124,7 +145,11 @@ function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="empty-state">Nenhuma despesa registrada</div>
+            <EmptyState
+              icon="📊"
+              title="Sem dados de pagamento"
+              description="Adicione transações para ver os gastos por tipo de pagamento."
+            />
           )}
         </div>
       </div>
@@ -136,7 +161,7 @@ function Dashboard() {
             <BarChart data={previsoes} layout="vertical">
               <XAxis type="number" />
               <YAxis type="category" dataKey="categoria" width={100} />
-              <Tooltip formatter={(value, name, props) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
               <Legend />
               <Bar dataKey="media_mensal" name="Média Mensal" radius={[0, 4, 4, 0]}>
                 {previsoes.map((entry, index) => (
@@ -149,7 +174,11 @@ function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="empty-state">Adicione itens fixos para ver previsões</div>
+          <EmptyState
+            icon="📅"
+            title="Sem previsões"
+            description="Adicione itens fixos para ver previsões mensais."
+          />
         )}
       </div>
     </div>
