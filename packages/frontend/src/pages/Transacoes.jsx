@@ -8,10 +8,10 @@ import {
   PlusOutlined,
   UploadOutlined
 } from '@ant-design/icons';
-import FinanceGrid from '../components/FinanceGrid';
 import { formatCurrency } from '../utils/currency';
 import { validateTransacao } from '../utils/validation';
 import { api } from '../services/api';
+import TransactionCard from '../components/TransactionCard';
 
 const initialForm = () => ({
   data: new Date().toISOString().split('T')[0],
@@ -52,8 +52,7 @@ const initialFilters = () => ({
 
 const formatDate = (value) => {
   if (!value) return '-';
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+  return new Date(value).toLocaleDateString('pt-BR');
 };
 
 function Transacoes() {
@@ -139,142 +138,6 @@ function Transacoes() {
     }
   }, [loadData]);
 
-  const columnDefs = useMemo(() => [
-    {
-      headerName: '',
-      field: 'select',
-      width: 48,
-      minWidth: 48,
-      pinned: 'left',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      sortable: false,
-      filter: false,
-      resizable: false,
-      suppressMovable: true
-    },
-    {
-      headerName: 'Pago',
-      field: 'pago',
-      width: 92,
-      minWidth: 92,
-      pinned: 'left',
-      filter: true,
-      cellRenderer: (params) => (
-        <button
-          type="button"
-          aria-label={params.value ? 'Marcar como não paga' : 'Marcar como paga'}
-          className={`status-toggle ${params.value ? 'is-paid' : 'is-open'}`}
-          onClick={() => handleTogglePago(params.data.id)}
-        >
-          {params.value ? <CheckOutlined /> : <CloseOutlined />}
-          <span>{params.value ? 'Pago' : 'Aberto'}</span>
-        </button>
-      )
-    },
-    {
-      headerName: 'Data',
-      field: 'data',
-      width: 116,
-      sort: 'desc',
-      valueFormatter: (params) => formatDate(params.value)
-    },
-    {
-      headerName: 'Descrição',
-      field: 'descricao',
-      flex: 1.6,
-      minWidth: 220,
-      cellRenderer: (params) => {
-        const parts = [];
-        parts.push(<span key="desc">{params.value || '-'}</span>);
-
-        if (params.data.gasto_fixo_nome && params.data.parcela_atual) {
-          parts.push(
-            <span key="parcela" className="tipo-badge parcela">
-              {params.data.parcela_atual}/{params.data.total_parcelas}
-            </span>
-          );
-        } else if (params.data.gasto_fixo_nome) {
-          parts.push(
-            <span key="recorrente" className="tipo-badge recorrente">
-              Recorrente
-            </span>
-          );
-        }
-
-        return <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{parts}</div>;
-      }
-    },
-    {
-      headerName: 'Categoria',
-      field: 'categoria_nome',
-      flex: 1,
-      minWidth: 150,
-      cellRenderer: (params) => {
-        if (!params.value) return <span className="muted-cell">Sem categoria</span>;
-        return (
-          <span className="category-chip" style={{ '--chip-color': params.data.categoria_cor || '#6b7280' }}>
-            {params.value}
-          </span>
-        );
-      }
-    },
-    {
-      headerName: 'Conta',
-      field: 'conta_nome',
-      flex: 0.9,
-      minWidth: 140,
-      valueFormatter: (params) => params.value || '-'
-    },
-    {
-      headerName: 'Tipo',
-      field: 'tipo',
-      width: 112,
-      cellRenderer: (params) => (
-        <span className={`money-type ${params.value}`}>
-          {params.value === 'receita' ? 'Receita' : 'Despesa'}
-        </span>
-      )
-    },
-    {
-      headerName: 'Pagamento',
-      field: 'tipo_pagamento',
-      width: 128,
-      cellRenderer: (params) => {
-        if (!params.value) return <span className="muted-cell">-</span>;
-        return <span className={`tipo-badge ${params.value}`}>{params.value}</span>;
-      }
-    },
-    {
-      headerName: 'Valor',
-      field: 'valor',
-      width: 132,
-      type: 'rightAligned',
-      cellClass: (params) => params.data.tipo === 'receita' ? 'money-cell income' : 'money-cell expense',
-      valueFormatter: (params) => {
-        const prefix = params.data.tipo === 'receita' ? '+ ' : '- ';
-        return prefix + formatCurrency(params.value);
-      }
-    },
-    {
-      headerName: 'Ações',
-      width: 112,
-      minWidth: 112,
-      pinned: 'right',
-      sortable: false,
-      filter: false,
-      cellRenderer: (params) => (
-        <div className="grid-row-actions">
-          <button type="button" className="icon-button" aria-label="Editar" onClick={() => handleEdit(params.data)}>
-            <EditOutlined />
-          </button>
-          <button type="button" className="icon-button danger" aria-label="Excluir" onClick={() => handleDelete(params.data.id)}>
-            <DeleteOutlined />
-          </button>
-        </div>
-      )
-    }
-  ], [handleDelete, handleEdit, handleTogglePago]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -478,30 +341,19 @@ function Transacoes() {
           <button type="button" className="btn-secondary" onClick={clearFilters}>Limpar</button>
         </div>
 
-        <FinanceGrid
-          storageKey="finance-grid:transacoes"
-          rowData={transacoes}
-          columnDefs={columnDefs}
-          loading={loading}
-          quickFilterText={quickSearch}
-          height={520}
-          rowSelection="multiple"
-          getRowId={(params) => String(params.data.id)}
-          selectionActions={(selectedRows, clearSelection) => (
-            <>
-              <button type="button" className="btn-ghost" onClick={() => updateSelectedPaidStatus(selectedRows, true, clearSelection)}>
-                Marcar pagas
-              </button>
-              <button type="button" className="btn-ghost" onClick={() => updateSelectedPaidStatus(selectedRows, false, clearSelection)}>
-                Marcar abertas
-              </button>
-              <button type="button" className="btn-ghost danger" onClick={() => deleteSelectedRows(selectedRows, clearSelection)}>
-                Excluir
-              </button>
-            </>
+        <div className="transaction-list">
+          {transacoes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+              Nenhuma transação encontrada
+            </div>
+          ) : (
+            <div style={{ overflow: 'auto', '-webkit-overflow-scrolling': 'touch' }}>
+              {transacoes.map((transacao) => (
+                <TransactionCard key={transacao.id} transaction={transacao} />
+              ))}
+            </div>
           )}
-        />
-      </div>
+        </div>
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

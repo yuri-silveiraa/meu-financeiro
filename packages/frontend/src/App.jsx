@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from 'antd';
 import {
   DashboardOutlined,
   SwapOutlined,
@@ -11,6 +11,7 @@ import {
   CalendarOutlined,
   LogoutOutlined,
   UserOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
@@ -23,6 +24,8 @@ import Configuracoes from './pages/Configuracoes';
 
 const { Header, Sider, Content } = Layout;
 
+const MOBILE_BREAKPOINT = 768;
+
 const menuItems = [
   { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/transacoes', icon: <SwapOutlined />, label: 'Transações' },
@@ -32,11 +35,34 @@ const menuItems = [
   { key: '/configuracoes', icon: <SettingOutlined />, label: 'Configurações' },
 ];
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => window.innerWidth < MOBILE_BREAKPOINT
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  return isMobile;
+}
+
 function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
 
   const userMenuItems = [
     {
@@ -50,34 +76,67 @@ function AppLayout() {
     },
   ];
 
+  const currentPageLabel = menuItems.find(item => item.key === location.pathname)?.label || 'Meu Financeiro';
+
+  const sidebarMenu = (
+    <Menu
+      theme="dark"
+      selectedKeys={[location.pathname]}
+      mode="inline"
+      items={menuItems}
+      onClick={({ key }) => navigate(key)}
+    />
+  );
+
   return (
     <Layout className="app-shell" style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        theme="dark"
-        className="app-sidebar"
-      >
-        <div className="app-brand">
-          <WalletOutlined />
-          {!collapsed && <span>Meu Financeiro</span>}
-        </div>
-        <Menu
+      {isMobile ? (
+        <Drawer
+          placement="left"
+          open={drawerOpen}
+          onClose={closeDrawer}
+          width={260}
+          className="app-drawer"
+          styles={{ body: { padding: 0, background: '#001529' }, header: { display: 'none' } }}
+        >
+          <div className="app-brand">
+            <WalletOutlined />
+            <span>Meu Financeiro</span>
+          </div>
+          {sidebarMenu}
+        </Drawer>
+      ) : (
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
           theme="dark"
-          selectedKeys={[location.pathname]}
-          mode="inline"
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-        />
-      </Sider>
+          className="app-sidebar"
+        >
+          <div className="app-brand">
+            <WalletOutlined />
+            {!collapsed && <span>Meu Financeiro</span>}
+          </div>
+          {sidebarMenu}
+        </Sider>
+      )}
       <Layout className="app-main">
-        <Header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>{menuItems.find(item => item.key === location.pathname)?.label || 'Meu Financeiro'}</span>
+        <Header className="app-header">
+          <div className="app-header-left">
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                onClick={() => setDrawerOpen(true)}
+                className="hamburger-btn"
+              />
+            )}
+            <span className="app-header-title">{currentPageLabel}</span>
+          </div>
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button type="text" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Avatar icon={<UserOutlined />} src={user?.avatar_url} />
-              <span>{user?.name || user?.email}</span>
+            <Button type="text" className="user-menu-btn">
+              <Avatar icon={<UserOutlined />} src={user?.avatar_url} size="small" />
+              {!isMobile && <span>{user?.name || user?.email}</span>}
             </Button>
           </Dropdown>
         </Header>

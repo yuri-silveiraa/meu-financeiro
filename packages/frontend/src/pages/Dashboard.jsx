@@ -50,13 +50,13 @@ function Dashboard() {
       )}
       <h1 className="page-title">Dashboard</h1>
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        <select value={mes} onChange={(e) => setMes(Number(e.target.value))} className="form-select" style={{ width: 150 }}>
+      <div className="dashboard-filters">
+        <select value={mes} onChange={(e) => setMes(Number(e.target.value))} className="form-select">
           {Array.from({ length: 12 }, (_, i) => (
             <option key={i} value={i + 1}>{getMonthName(i)}</option>
           ))}
         </select>
-        <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="form-select" style={{ width: 100 }}>
+        <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="form-select">
           {yearOptions.map((year) => (
             <option key={year} value={year}>{year}</option>
           ))}
@@ -85,7 +85,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="dashboard-charts">
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Gastos por Categoria</h3>
           {estatisticas.porCategoria.length > 0 ? (

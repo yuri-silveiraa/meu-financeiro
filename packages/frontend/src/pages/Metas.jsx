@@ -113,7 +113,7 @@ function Metas() {
          </div>
 
       {metas.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+        <div className="metas-grid">
           {metas.map((meta) => {
             const progresso = calcularProgresso(meta);
             return (
