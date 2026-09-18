@@ -1,62 +1,62 @@
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 
 const formatDate = (value) => {
-  if (!value) return '-';
+  if (!value) return '';
   return new Date(value).toLocaleDateString('pt-BR');
 };
 
-const TransactionCard = ({ transaction, onTogglePago, onEdit, onDelete }) => {
-  const meta = [
-    transaction.categoria_nome,
-    transaction.tipo_pagamento,
-    formatDate(transaction.data),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
+  const isPaid = !!transaction.pago;
+  const isReceita = transaction.tipo === 'receita';
+  const dataFormatada = formatDate(transaction.data);
 
   return (
-    <div className="tx-card">
+    <div
+      className={`tx-card ${isPaid ? 'tx-card-paid' : 'tx-card-unpaid'}`}
+      onClick={() => onEdit?.(transaction)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onEdit?.(transaction);
+        }
+      }}
+    >
       <div className="tx-card-left">
-        <span
-          className="tx-dot"
-          style={{ background: transaction.categoria_cor || '#6b7280' }}
-        />
         <div className="tx-info">
-          <span className="tx-desc">{transaction.descricao || 'Sem descrição'}</span>
-          {meta && <span className="tx-meta">{meta}</span>}
+          <span className="tx-desc" title={transaction.descricao || 'Sem descrição'}>
+            {transaction.descricao || 'Sem descrição'}
+          </span>
+          <div className="tx-subinfo">
+            {transaction.categoria_nome && (
+              <span className="tx-cat-tag">
+                <span
+                  className="tx-dot-mini"
+                  style={{ background: transaction.categoria_cor || '#6b7280' }}
+                />
+                {transaction.categoria_nome}
+              </span>
+            )}
+            {dataFormatada && <span className="tx-date">{dataFormatada}</span>}
+          </div>
         </div>
       </div>
+
       <div className="tx-card-right">
         <span className={`tx-valor ${transaction.tipo}`}>
-          {transaction.tipo === 'receita' ? '+' : '-'}
-          {formatCurrency(transaction.valor)}
+          {isReceita ? '+' : '-'} {formatCurrency(transaction.valor)}
         </span>
-        <div className="tx-actions">
-          <button
-            type="button"
-            className={`status-toggle ${transaction.pago ? 'is-paid' : 'is-open'}`}
-            onClick={() => onTogglePago?.(transaction.id)}
-          >
-            {transaction.pago ? '✓ Pago' : 'Aberto'}
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={() => onEdit?.(transaction)}
-            aria-label="Editar"
-          >
-            <EditOutlined />
-          </button>
-          <button
-            type="button"
-            className="icon-button danger"
-            onClick={() => onDelete?.(transaction.id)}
-            aria-label="Excluir"
-          >
-            <DeleteOutlined />
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`status-pill ${isPaid ? 'is-paid' : 'is-unpaid'}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePago?.(transaction.id);
+          }}
+          title={isPaid ? 'Clique para marcar como pendente' : 'Clique para marcar como pago'}
+        >
+          {isPaid ? '✓ Pago' : '⏳ Pendente'}
+        </button>
       </div>
     </div>
   );

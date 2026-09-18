@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Papa from 'papaparse';
-import { Modal, message } from 'antd';
+import { Modal, message, Badge } from 'antd';
 import {
   PlusOutlined,
   UploadOutlined,
+  FilterOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { validateTransacao } from '../utils/validation';
@@ -53,6 +55,7 @@ function Transacoes() {
   const [contas, setContas] = useState([]);
   const [filtros, setFiltros] = useState(initialFilters);
   const [showModal, setShowModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [quickSearch, setQuickSearch] = useState('');
   const [form, setForm] = useState(initialForm);
@@ -118,6 +121,8 @@ function Transacoes() {
       onOk: async () => {
         try {
           await api.deleteTransacao(id);
+          setShowModal(false);
+          setEditando(null);
           loadData();
           message.success('Transação excluída com sucesso');
         } catch (err) {
@@ -135,7 +140,6 @@ function Transacoes() {
 
   const openCreateModal = () => {
     resetForm();
-    setEditando(null);
     setShowModal(true);
   };
 
@@ -222,15 +226,24 @@ function Transacoes() {
     setQuickSearch('');
   };
 
-  const filteredTransacoes = transacoes.filter(t => {
-    if (!quickSearch) return true;
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filtros.tipo) count++;
+    if (filtros.pago !== '') count++;
+    if (filtros.categoriaId) count++;
+    if (filtros.contaId) count++;
+    return count;
+  }, [filtros]);
+
+  const filteredTransacoes = useMemo(() => {
+    if (!quickSearch) return transacoes;
     const q = quickSearch.toLowerCase();
-    return (
+    return transacoes.filter(t => (
       (t.descricao || '').toLowerCase().includes(q) ||
       (t.categoria_nome || '').toLowerCase().includes(q) ||
       (t.conta_nome || '').toLowerCase().includes(q)
-    );
-  });
+    ));
+  }, [transacoes, quickSearch]);
 
   const totalReceitas = transacoes.filter(t => t.tipo === 'receita' && t.pago).reduce((sum, t) => sum + parseFloat(t.valor), 0);
   const totalDespesasPagas = transacoes.filter(t => t.tipo === 'despesa' && t.pago).reduce((sum, t) => sum + parseFloat(t.valor), 0);
@@ -284,7 +297,8 @@ function Transacoes() {
       </div>
 
       <div className="workspace-panel">
-        <div className="filters-bar compact">
+        {/* Barra de Filtros para Desktop */}
+        <div className="filters-bar compact desktop-filters-bar">
           <input
             type="search"
             value={quickSearch}
@@ -297,12 +311,14 @@ function Transacoes() {
             value={filtros.dataInicio}
             onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
             className="form-input"
+            title="Data inicial"
           />
           <input
             type="date"
             value={filtros.dataFim}
             onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
             className="form-input"
+            title="Data final"
           />
           <select value={filtros.tipo} onChange={(e) => setFiltros({ ...filtros, tipo: e.target.value })} className="form-select">
             <option value="">Todos os tipos</option>
@@ -329,6 +345,27 @@ function Transacoes() {
           <button type="button" className="btn-secondary" onClick={clearFilters}>Limpar</button>
         </div>
 
+        {/* Barra Simplificada para Mobile */}
+        <div className="mobile-search-filter-row">
+          <input
+            type="search"
+            value={quickSearch}
+            onChange={(e) => setQuickSearch(e.target.value)}
+            className="form-input search-input"
+            placeholder="Buscar transação..."
+          />
+          <button
+            type="button"
+            className="btn-secondary filter-btn-mobile"
+            onClick={() => setShowFilterModal(true)}
+          >
+            <Badge count={activeFiltersCount} offset={[6, -2]} size="small">
+              <FilterOutlined style={{ fontSize: 16 }} />
+            </Badge>
+            <span>Filtros</span>
+          </button>
+        </div>
+
         <div className="transaction-list">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
@@ -349,13 +386,121 @@ function Transacoes() {
                 transaction={transacao}
                 onTogglePago={handleTogglePago}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
               />
             ))
           )}
         </div>
       </div>
 
+      {/* Modal de Filtros (Mobile) */}
+      <Modal
+        open={showFilterModal}
+        onCancel={() => setShowFilterModal(false)}
+        title="Filtrar Transações"
+        footer={null}
+        width={480}
+        destroyOnHide
+      >
+        <div className="filter-modal-content">
+          <div className="form-grid two-columns">
+            <div className="form-group">
+              <label className="form-label">Data Início</label>
+              <input
+                type="date"
+                value={filtros.dataInicio}
+                onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Data Fim</label>
+              <input
+                type="date"
+                value={filtros.dataFim}
+                onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+                className="form-input"
+              />
+            </div>
+          </div>
+
+          <div className="form-grid two-columns">
+            <div className="form-group">
+              <label className="form-label">Tipo</label>
+              <select
+                value={filtros.tipo}
+                onChange={(e) => setFiltros({ ...filtros, tipo: e.target.value })}
+                className="form-select"
+              >
+                <option value="">Todos</option>
+                <option value="receita">Receitas</option>
+                <option value="despesa">Despesas</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Status</label>
+              <select
+                value={filtros.pago}
+                onChange={(e) => setFiltros({ ...filtros, pago: e.target.value })}
+                className="form-select"
+              >
+                <option value="">Todos</option>
+                <option value="1">Pagas</option>
+                <option value="0">Pendentes</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Categoria</label>
+            <select
+              value={filtros.categoriaId}
+              onChange={(e) => setFiltros({ ...filtros, categoriaId: e.target.value })}
+              className="form-select"
+            >
+              <option value="">Todas as categorias</option>
+              {categorias.map((categoria) => (
+                <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Conta</label>
+            <select
+              value={filtros.contaId}
+              onChange={(e) => setFiltros({ ...filtros, contaId: e.target.value })}
+              className="form-select"
+            >
+              <option value="">Todas as contas</option>
+              {contas.map((conta) => (
+                <option key={conta.id} value={conta.id}>{conta.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: 20 }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                clearFilters();
+                setShowFilterModal(false);
+              }}
+            >
+              Limpar Filtros
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setShowFilterModal(false)}
+            >
+              Aplicar Filtros
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Criação / Edição de Transação */}
       <Modal
         open={showModal}
         onCancel={() => { setShowModal(false); resetForm(); }}
@@ -464,9 +609,21 @@ function Transacoes() {
             </select>
           </div>
 
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancelar</button>
-            <button type="submit" className="btn-primary">Salvar</button>
+          <div className="modal-actions" style={{ justifyContent: editando ? 'space-between' : 'flex-end' }}>
+            {editando && (
+              <button
+                type="button"
+                className="btn-ghost danger"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={() => handleDelete(editando.id)}
+              >
+                <DeleteOutlined /> Excluir Transação
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); resetForm(); }}>Cancelar</button>
+              <button type="submit" className="btn-primary">Salvar</button>
+            </div>
           </div>
         </form>
       </Modal>
