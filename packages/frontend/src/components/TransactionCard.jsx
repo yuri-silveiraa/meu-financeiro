@@ -37,6 +37,12 @@ const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
                 {transaction.categoria_nome}
               </span>
             )}
+            {transaction.cartao_nome && (
+              <span className="tx-cat-tag" style={{ background: '#ede9fe', color: '#6d28d9' }}>
+                💳 {transaction.cartao_nome}
+                {transaction.total_parcelas > 1 ? ` (${transaction.parcela_atual}/${transaction.total_parcelas})` : ''}
+              </span>
+            )}
             {dataFormatada && <span className="tx-date">{dataFormatada}</span>}
           </div>
         </div>

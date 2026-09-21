@@ -12,11 +12,13 @@ import {
   LogoutOutlined,
   UserOutlined,
   MenuOutlined,
+  CreditCardOutlined,
 } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Transacoes from './pages/Transacoes';
+import Cartoes from './pages/Cartoes';
 import Relatorios from './pages/Relatorios';
 import Metas from './pages/Metas';
 import GastosFixos from './pages/GastosFixos';
@@ -29,6 +31,7 @@ const MOBILE_BREAKPOINT = 768;
 const menuItems = [
   { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/transacoes', icon: <SwapOutlined />, label: 'Transações' },
+  { key: '/cartoes', icon: <CreditCardOutlined />, label: 'Cartões' },
   { key: '/gastosfixos', icon: <CalendarOutlined />, label: 'Fixos' },
   { key: '/relatorios', icon: <FileTextOutlined />, label: 'Relatórios' },
   { key: '/metas', icon: <FlagOutlined />, label: 'Metas' },
@@ -144,6 +147,7 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/transacoes" element={<Transacoes />} />
+            <Route path="/cartoes" element={<Cartoes />} />
             <Route path="/gastosfixos" element={<GastosFixos />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/metas" element={<Metas />} />

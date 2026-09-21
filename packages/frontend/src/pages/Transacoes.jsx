@@ -21,6 +21,8 @@ const initialForm = () => ({
   tipo_pagamento: 'debito',
   categoria_id: '',
   conta_id: '',
+  cartao_id: '',
+  total_parcelas: 1,
   pago: false
 });
 
@@ -46,13 +48,15 @@ const initialFilters = () => ({
   tipo: '',
   pago: '',
   categoriaId: '',
-  contaId: ''
+  contaId: '',
+  cartaoId: ''
 });
 
 function Transacoes() {
   const [transacoes, setTransacoes] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [contas, setContas] = useState([]);
+  const [cartoes, setCartoes] = useState([]);
   const [filtros, setFiltros] = useState(initialFilters);
   const [showModal, setShowModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -66,14 +70,16 @@ function Transacoes() {
     setLoading(true);
     setError(null);
     try {
-      const [t, c, ct] = await Promise.all([
+      const [t, c, ct, cr] = await Promise.all([
         api.getTransacoes(filtros),
         api.getCategorias(),
-        api.getContas()
+        api.getContas(),
+        api.getCartoes()
       ]);
       setTransacoes(t);
       setCategorias(c);
       setContas(ct);
+      setCartoes(cr);
     } catch (err) {
       setError(err.message || 'Erro ao carregar dados');
       console.error(err);
@@ -99,19 +105,56 @@ function Transacoes() {
   const handleEdit = useCallback((transacao) => {
     setEditando(transacao);
     setForm({
-      data: transacao.data,
+      data: transacao.data ? transacao.data.split('T')[0] : '',
       descricao: transacao.descricao || '',
       valor: transacao.valor.toString(),
       tipo: transacao.tipo,
       tipo_pagamento: transacao.tipo_pagamento || 'debito',
       categoria_id: transacao.categoria_id || '',
       conta_id: transacao.conta_id || '',
+      cartao_id: transacao.cartao_id || '',
+      total_parcelas: transacao.total_parcelas || 1,
       pago: transacao.pago || false
     });
     setShowModal(true);
   }, []);
 
-  const handleDelete = useCallback(async (id) => {
+  const handleDelete = useCallback(async (id, transacaoObj = null) => {
+    const tx = transacaoObj || editando || transacoes.find(t => t.id === id);
+
+    if (tx?.compra_grupo_id) {
+      Modal.confirm({
+        title: 'Excluir compra parcelada',
+        content: `Esta transação faz parte de um parcelamento (${tx.parcela_atual}/${tx.total_parcelas}). Como você deseja excluir?`,
+        okText: 'Excluir Todas',
+        okType: 'danger',
+        cancelText: 'Apenas Esta',
+        onOk: async () => {
+          try {
+            await api.deleteTransacaoComModo(id, 'all');
+            setShowModal(false);
+            setEditando(null);
+            loadData();
+            message.success('Todas as parcelas foram excluídas');
+          } catch (err) {
+            message.error('Erro ao excluir parcelas');
+          }
+        },
+        onCancel: async () => {
+          try {
+            await api.deleteTransacaoComModo(id, 'single');
+            setShowModal(false);
+            setEditando(null);
+            loadData();
+            message.success('Parcela excluída com sucesso');
+          } catch (err) {
+            message.error('Erro ao excluir transação');
+          }
+        },
+      });
+      return;
+    }
+
     Modal.confirm({
       title: 'Excluir transação',
       content: 'Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.',
@@ -131,7 +174,7 @@ function Transacoes() {
         }
       }
     });
-  }, [loadData]);
+  }, [loadData, editando, transacoes]);
 
   const resetForm = () => {
     setForm(initialForm());
@@ -155,6 +198,10 @@ function Transacoes() {
     const dados = {
       ...form,
       valor: parseFloat(form.valor),
+      conta_id: form.conta_id ? parseInt(form.conta_id, 10) : null,
+      categoria_id: form.categoria_id ? parseInt(form.categoria_id, 10) : null,
+      cartao_id: form.tipo_pagamento === 'credito' && form.cartao_id ? parseInt(form.cartao_id, 10) : null,
+      total_parcelas: form.tipo_pagamento === 'credito' && !editando ? (parseInt(form.total_parcelas, 10) || 1) : 1,
       pago: form.tipo === 'receita' ? true : form.pago
     };
 
@@ -232,6 +279,7 @@ function Transacoes() {
     if (filtros.pago !== '') count++;
     if (filtros.categoriaId) count++;
     if (filtros.contaId) count++;
+    if (filtros.cartaoId) count++;
     return count;
   }, [filtros]);
 
@@ -241,7 +289,8 @@ function Transacoes() {
     return transacoes.filter(t => (
       (t.descricao || '').toLowerCase().includes(q) ||
       (t.categoria_nome || '').toLowerCase().includes(q) ||
-      (t.conta_nome || '').toLowerCase().includes(q)
+      (t.conta_nome || '').toLowerCase().includes(q) ||
+      (t.cartao_nome || '').toLowerCase().includes(q)
     ));
   }, [transacoes, quickSearch]);
 
@@ -340,6 +389,23 @@ function Transacoes() {
             <option value="">Todas contas</option>
             {contas.map((conta) => (
               <option key={conta.id} value={conta.id}>{conta.nome}</option>
+            ))}
+          </select>
+          <select
+            value={filtros.cartaoId}
+            onChange={(e) => {
+              const newCardId = e.target.value;
+              setFiltros((prev) => ({
+                ...prev,
+                cartaoId: newCardId,
+                ...(newCardId ? { dataInicio: '', dataFim: '' } : {})
+              }));
+            }}
+            className="form-select"
+          >
+            <option value="">Todos cartões</option>
+            {cartoes.map((cartao) => (
+              <option key={cartao.id} value={cartao.id}>{cartao.nome}</option>
             ))}
           </select>
           <button type="button" className="btn-secondary" onClick={clearFilters}>Limpar</button>
@@ -478,6 +544,27 @@ function Transacoes() {
             </select>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Cartão de Crédito</label>
+            <select
+              value={filtros.cartaoId}
+              onChange={(e) => {
+                const newCardId = e.target.value;
+                setFiltros((prev) => ({
+                  ...prev,
+                  cartaoId: newCardId,
+                  ...(newCardId ? { dataInicio: '', dataFim: '' } : {})
+                }));
+              }}
+              className="form-select"
+            >
+              <option value="">Todos os cartões</option>
+              {cartoes.map((cartao) => (
+                <option key={cartao.id} value={cartao.id}>{cartao.nome}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="modal-actions" style={{ marginTop: 20 }}>
             <button
               type="button"
@@ -569,34 +656,84 @@ function Transacoes() {
           </div>
 
           {form.tipo === 'despesa' && (
-            <div className="form-grid two-columns">
-              <div className="form-group">
-                <label className="form-label">Tipo de Pagamento</label>
-                <select
-                  value={form.tipo_pagamento}
-                  onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
-                  className="form-select"
-                >
-                  <option value="debito">Débito</option>
-                  <option value="credito">Crédito</option>
-                  <option value="pix">Pix</option>
-                  <option value="dinheiro">Dinheiro</option>
-                  <option value="boleto">Boleto</option>
-                </select>
+            <>
+              <div className="form-grid two-columns">
+                <div className="form-group">
+                  <label className="form-label">Tipo de Pagamento</label>
+                  <select
+                    value={form.tipo_pagamento}
+                    onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="debito">Débito</option>
+                    <option value="credito">Crédito</option>
+                    <option value="pix">Pix</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="boleto">Boleto</option>
+                  </select>
+                </div>
+                <label className="checkbox-card">
+                  <input
+                    type="checkbox"
+                    checked={form.pago}
+                    onChange={(e) => setForm({ ...form, pago: e.target.checked })}
+                  />
+                  <span>Marcar como pago</span>
+                </label>
               </div>
-              <label className="checkbox-card">
-                <input
-                  type="checkbox"
-                  checked={form.pago}
-                  onChange={(e) => setForm({ ...form, pago: e.target.checked })}
-                />
-                <span>Marcar como pago</span>
-              </label>
-            </div>
+
+              {form.tipo_pagamento === 'credito' && (
+                <div className="form-grid two-columns">
+                  <div className="form-group">
+                    <label className="form-label">Cartão de Crédito</label>
+                    <select
+                      value={form.cartao_id}
+                      onChange={(e) => setForm({ ...form, cartao_id: e.target.value })}
+                      className="form-select"
+                    >
+                      <option value="">Selecione o cartão...</option>
+                      {cartoes.map((cartao) => (
+                        <option key={cartao.id} value={cartao.id}>
+                          {cartao.nome} (Fecha: {cartao.dia_fechamento} / Vence: {cartao.dia_vencimento})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {!editando ? (
+                    <div className="form-group">
+                      <label className="form-label">Parcelamento</label>
+                      <select
+                        value={form.total_parcelas}
+                        onChange={(e) => setForm({ ...form, total_parcelas: parseInt(e.target.value, 10) })}
+                        className="form-select"
+                      >
+                        <option value={1}>À vista (1x)</option>
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24].map((num) => (
+                          <option key={num} value={num}>
+                            {num}x {form.valor ? `de ${formatCurrency(parseFloat(form.valor) / num)}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label className="form-label">Parcela</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={`${form.parcela_atual || 1}/${form.total_parcelas || 1}`}
+                        className="form-input"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           <div className="form-group">
-            <label className="form-label">Conta</label>
+            <label className="form-label">Conta {form.tipo_pagamento === 'credito' ? '(Opcional)' : ''}</label>
             <select
               value={form.conta_id}
               onChange={(e) => setForm({ ...form, conta_id: e.target.value })}

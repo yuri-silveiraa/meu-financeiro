@@ -25,8 +25,8 @@ export const validateTransacao = (form) => {
     errors.categoria_id = 'Categoria é obrigatória';
   }
 
-  if (!form.conta_id) {
-    errors.conta_id = 'Conta é obrigatória';
+  if (!form.conta_id && !(form.tipo_pagamento === 'credito' && form.cartao_id)) {
+    errors.conta_id = 'Conta ou Cartão é obrigatório';
   }
 
   return errors;

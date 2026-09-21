@@ -76,6 +76,18 @@ export const api = {
   // Previsões
   getPrevisoes: () => request('/api/previsoes'),
 
+  // Cartões
+  getCartoes: () => request('/api/cartoes'),
+  getCartao: (id) => request(`/api/cartoes/${id}`),
+  addCartao: (data) => request('/api/cartoes', { method: 'POST', body: JSON.stringify(data) }),
+  updateCartao: (id, data) => request(`/api/cartoes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCartao: (id) => request(`/api/cartoes/${id}`, { method: 'DELETE' }),
+  getFaturas: (cartaoId) => request(`/api/cartoes/${cartaoId}/faturas`),
+  getFaturaDetalhada: (cartaoId, ano, mes) => request(`/api/cartoes/${cartaoId}/faturas/${ano}/${mes}`),
+  pagarFatura: (cartaoId, ano, mes, data = {}) =>
+    request(`/api/cartoes/${cartaoId}/faturas/${ano}/${mes}/pagar`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteTransacaoComModo: (id, mode = 'single') => request(`/api/transacoes/${id}?mode=${mode}`, { method: 'DELETE' }),
+
   // WhatsApp Bot
   gerarCodigoVinculacao: (phoneNumber) =>
     request('/api/whatsapp/vincular', { method: 'POST', body: JSON.stringify({ phoneNumber }) }),

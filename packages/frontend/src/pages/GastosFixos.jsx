@@ -15,6 +15,7 @@ const initialForm = () => ({
   tipo_pagamento: 'pix',
   categoria_id: '',
   conta_id: '',
+  cartao_id: '',
   total_parcelas: ''
 });
 
@@ -22,6 +23,7 @@ function GastosFixos() {
   const [gastosFixos, setGastosFixos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [contas, setContas] = useState([]);
+  const [cartoes, setCartoes] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [quickSearch, setQuickSearch] = useState('');
@@ -34,14 +36,16 @@ function GastosFixos() {
     setLoading(true);
     setError(null);
     try {
-      const [gf, c, ct] = await Promise.all([
+      const [gf, c, ct, cr] = await Promise.all([
         api.getGastosFixos(),
         api.getCategorias(),
-        api.getContas()
+        api.getContas(),
+        api.getCartoes()
       ]);
       setGastosFixos(gf);
       setCategorias(c);
       setContas(ct);
+      setCartoes(cr);
     } catch (err) {
       setError(err.message || 'Erro ao carregar gastos fixos');
       console.error(err);
@@ -75,6 +79,7 @@ function GastosFixos() {
       tipo_pagamento: gasto.tipo_pagamento || 'pix',
       categoria_id: gasto.categoria_id || '',
       conta_id: gasto.conta_id || '',
+      cartao_id: gasto.cartao_id ? gasto.cartao_id.toString() : '',
       total_parcelas: gasto.total_parcelas?.toString() || ''
     });
     setShowModal(true);
@@ -148,9 +153,28 @@ function GastosFixos() {
       },
       {
         field: 'conta_nome',
-        headerName: 'Conta',
-        width: 140,
-        valueFormatter: (params) => params.value || '-'
+        headerName: 'Conta / Cartão',
+        width: 160,
+        valueGetter: (params) => (params.data?.cartao_nome ? `💳 ${params.data.cartao_nome}` : (params.data?.conta_nome || '')),
+        cellRenderer: (params) => {
+          if (params.data?.cartao_nome) {
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: params.data.cartao_cor || '#6366f1',
+                    display: 'inline-block'
+                  }}
+                />
+                💳 {params.data.cartao_nome}
+              </span>
+            );
+          }
+          return params.value || <span className="muted-cell">-</span>;
+        }
       },
       {
         field: 'categoria_nome',
@@ -204,13 +228,28 @@ function GastosFixos() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (form.tipo === 'despesa' && form.tipo_pagamento === 'credito' && !form.cartao_id) {
+      message.warning('Selecione um cartão de crédito');
+      return;
+    }
+
+    let diaVencimento = parseInt(form.dia_vencimento, 10);
+    if (form.tipo === 'despesa' && form.tipo_pagamento === 'credito') {
+      const card = cartoes.find((c) => c.id.toString() === form.cartao_id?.toString());
+      if (card) {
+        diaVencimento = card.dia_vencimento;
+      }
+    }
+
     const dados = {
       ...form,
       valor: parseFloat(form.valor),
-      dia_vencimento: parseInt(form.dia_vencimento, 10),
+      dia_vencimento: diaVencimento,
       tipo: form.tipo || 'despesa',
       total_parcelas: form.total_parcelas ? parseInt(form.total_parcelas, 10) : null,
-      conta_id: form.conta_id || null,
+      conta_id: form.tipo_pagamento === 'credito' ? null : (form.conta_id || null),
+      cartao_id: form.tipo_pagamento === 'credito' && form.cartao_id ? parseInt(form.cartao_id, 10) : null,
       categoria_id: form.categoria_id || null
     };
 
@@ -253,6 +292,9 @@ function GastosFixos() {
     receita: 'Ex: Salário, Freelance, Aluguel recebido',
     todos: 'Ex: Internet, Salário, Netflix'
   };
+
+  const isCredito = form.tipo === 'despesa' && form.tipo_pagamento === 'credito';
+  const selectedCartao = cartoes.find((c) => c.id.toString() === form.cartao_id?.toString());
 
   return (
     <div className="workspace">
@@ -352,49 +394,20 @@ function GastosFixos() {
               required
             />
           </div>
-          <div className="form-grid three-columns">
-            <div className="form-group">
-              <label className="form-label">Valor Mensal</label>
-              <input
-                type="number"
-                step="0.01"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                className="form-input"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Dia do Vencimento</label>
-              <input
-                type="number"
-                min="1"
-                max="31"
-                value={form.dia_vencimento}
-                onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
-                className="form-input"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Parcelas</label>
-              <input
-                type="number"
-                min="1"
-                value={form.total_parcelas}
-                onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
-                className="form-input"
-                placeholder="Recorrente"
-              />
-              <span className="form-hint">Vazio = recorrente para sempre</span>
-            </div>
-          </div>
+
           <div className="form-grid three-columns">
             <div className="form-group">
               <label className="form-label">Tipo</label>
               <select
                 value={form.tipo}
-                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                onChange={(e) => {
+                  const newTipo = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    tipo: newTipo,
+                    tipo_pagamento: newTipo === 'receita' && prev.tipo_pagamento === 'credito' ? 'pix' : prev.tipo_pagamento
+                  }));
+                }}
                 className="form-select"
               >
                 <option value="despesa">Despesa</option>
@@ -405,12 +418,26 @@ function GastosFixos() {
               <label className="form-label">Tipo de Pagamento</label>
               <select
                 value={form.tipo_pagamento}
-                onChange={(e) => setForm({ ...form, tipo_pagamento: e.target.value })}
+                onChange={(e) => {
+                  const newTipoPagamento = e.target.value;
+                  let newCartaoId = form.cartao_id;
+                  let newDiaVencimento = form.dia_vencimento;
+                  if (newTipoPagamento === 'credito' && !newCartaoId && cartoes.length > 0) {
+                    newCartaoId = cartoes[0].id.toString();
+                    newDiaVencimento = cartoes[0].dia_vencimento.toString();
+                  }
+                  setForm((prev) => ({
+                    ...prev,
+                    tipo_pagamento: newTipoPagamento,
+                    cartao_id: newCartaoId,
+                    dia_vencimento: newDiaVencimento
+                  }));
+                }}
                 className="form-select"
               >
                 <option value="pix">Pix</option>
                 <option value="debito">Débito</option>
-                <option value="credito">Crédito</option>
+                {form.tipo === 'despesa' && <option value="credito">Crédito</option>}
                 <option value="boleto">Boleto</option>
                 <option value="dinheiro">Dinheiro</option>
               </select>
@@ -429,18 +456,97 @@ function GastosFixos() {
               </select>
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Conta</label>
-            <select
-              value={form.conta_id}
-              onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
-              className="form-select"
-            >
-              <option value="">Nenhuma conta</option>
-              {contas.map((conta) => (
-                <option key={conta.id} value={conta.id}>{conta.nome}</option>
-              ))}
-            </select>
+
+          {isCredito ? (
+            <div className="form-group">
+              <label className="form-label">Cartão de Crédito</label>
+              <select
+                value={form.cartao_id}
+                onChange={(e) => {
+                  const cardId = e.target.value;
+                  const card = cartoes.find((c) => c.id.toString() === cardId);
+                  setForm((prev) => ({
+                    ...prev,
+                    cartao_id: cardId,
+                    dia_vencimento: card ? card.dia_vencimento.toString() : prev.dia_vencimento
+                  }));
+                }}
+                className="form-select"
+                required
+              >
+                <option value="">Selecione o cartão...</option>
+                {cartoes.map((cartao) => (
+                  <option key={cartao.id} value={cartao.id}>
+                    {cartao.nome} (Fecha: dia {cartao.dia_fechamento} / Vence: dia {cartao.dia_vencimento})
+                  </option>
+                ))}
+              </select>
+              {cartoes.length === 0 ? (
+                <span className="form-hint" style={{ color: '#ef4444' }}>
+                  Nenhum cartão cadastrado. Cadastre um cartão na tela de Cartões primeiro.
+                </span>
+              ) : (
+                selectedCartao && (
+                  <span className="form-hint" style={{ color: '#10b981', display: 'block', marginTop: 4 }}>
+                    ✓ Vencimento automático: todo dia {selectedCartao.dia_vencimento} (conforme fatura do cartão)
+                  </span>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label">Conta</label>
+              <select
+                value={form.conta_id}
+                onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
+                className="form-select"
+              >
+                <option value="">Nenhuma conta</option>
+                {contas.map((conta) => (
+                  <option key={conta.id} value={conta.id}>{conta.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className={isCredito ? 'form-grid two-columns' : 'form-grid three-columns'}>
+            <div className="form-group">
+              <label className="form-label">Valor Mensal</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                className="form-input"
+                required
+              />
+            </div>
+            {!isCredito && (
+              <div className="form-group">
+                <label className="form-label">Dia do Vencimento</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={form.dia_vencimento}
+                  onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
+                  className="form-input"
+                  required
+                />
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label">Parcelas</label>
+              <input
+                type="number"
+                min="1"
+                value={form.total_parcelas}
+                onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
+                className="form-input"
+                placeholder="Recorrente"
+              />
+              <span className="form-hint">Vazio = recorrente para sempre</span>
+            </div>
           </div>
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}>Cancelar</button>
