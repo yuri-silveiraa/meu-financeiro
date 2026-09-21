@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
 import pool from '../config/database.js';
 import { pendingLinks } from './whatsapp.js';
+import { calcularFaturaEVencimento, gerarParcelas } from '../utils/fatura.js';
 
 const router = Router();
 
@@ -65,8 +67,9 @@ router.post('/link', async (req, res) => {
 
 // Criar transação
 router.post('/transacao', async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { userId, data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id } = req.body;
+    const { userId, data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id, cartao_id, total_parcelas } = req.body;
     if (!userId || !valor || !tipo) {
       return res.status(400).json({ error: 'userId, valor e tipo obrigatórios' });
     }
@@ -82,6 +85,69 @@ router.post('/transacao', async (req, res) => {
     if (tipo_pagamento && !['credito', 'debito', 'pix', 'dinheiro', 'boleto'].includes(tipo_pagamento)) {
       return res.status(400).json({ error: 'tipo_pagamento inválido' });
     }
+
+    // Se for cartão de crédito e tiver cartao_id
+    if (tipo_pagamento === 'credito' && cartao_id) {
+      const cartaoRes = await client.query(
+        'SELECT * FROM cartoes WHERE id = $1 AND user_id = $2',
+        [cartao_id, userId]
+      );
+      if (cartaoRes.rows.length > 0) {
+        const cartao = cartaoRes.rows[0];
+        const parcelasCount = parseInt(total_parcelas, 10) || 1;
+        const dataTransacao = data || new Date().toISOString().split('T')[0];
+
+        if (parcelasCount > 1) {
+          const parcelas = gerarParcelas({
+            dataCompra: dataTransacao,
+            valorTotal: valor,
+            totalParcelas: parcelasCount,
+            diaFechamento: cartao.dia_fechamento,
+            diaVencimento: cartao.dia_vencimento,
+          });
+
+          const grupoId = randomUUID();
+          const criadas = [];
+
+          await client.query('BEGIN');
+          for (const p of parcelas) {
+            const descParcela = descricao ? `${descricao} (${p.parcela_atual}/${p.total_parcelas})` : `Compra (${p.parcela_atual}/${p.total_parcelas})`;
+            const r = await client.query(
+              `INSERT INTO transacoes (
+                 user_id, data, descricao, valor, tipo, tipo_pagamento,
+                 categoria_id, conta_id, cartao_id, pago,
+                 parcela_atual, total_parcelas, fatura_mes, fatura_ano, compra_grupo_id
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, $10, $11, $12, $13, $14) RETURNING *`,
+              [
+                userId, p.data, descParcela, p.valor, tipo, 'credito',
+                categoria_id || null, conta_id || null, cartao_id,
+                p.parcela_atual, p.total_parcelas, p.fatura_mes, p.fatura_ano, grupoId
+              ]
+            );
+            criadas.push(r.rows[0]);
+          }
+          await client.query('COMMIT');
+          return res.status(201).json(criadas[0]);
+        } else {
+          // 1x no cartão
+          const faturaInfo = calcularFaturaEVencimento(dataTransacao, cartao.dia_fechamento, cartao.dia_vencimento);
+          const result = await client.query(
+            `INSERT INTO transacoes (
+               user_id, data, descricao, valor, tipo, tipo_pagamento,
+               categoria_id, conta_id, cartao_id, pago,
+               parcela_atual, total_parcelas, fatura_mes, fatura_ano
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, 1, 1, $10, $11) RETURNING *`,
+            [
+              userId, faturaInfo.data_vencimento, descricao || null, valor, tipo, 'credito',
+              categoria_id || null, conta_id || null, cartao_id,
+              faturaInfo.fatura_mes, faturaInfo.fatura_ano
+            ]
+          );
+          return res.status(201).json(result.rows[0]);
+        }
+      }
+    }
+
     const result = await pool.query(
       `INSERT INTO transacoes (user_id, data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id, pago)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING *`,
@@ -98,7 +164,72 @@ router.post('/transacao', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Erro ao criar transação:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  } finally {
+    client.release();
+  }
+});
+
+// Listar cartões do usuário
+router.get('/cartoes/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const uid = parseInt(userId, 10);
+    if (!uid || uid <= 0) {
+      return res.status(400).json({ error: 'userId inválido' });
+    }
+
+    const result = await pool.query(
+      `SELECT c.*,
+              COALESCE(
+                (SELECT SUM(t.valor) 
+                 FROM transacoes t 
+                 WHERE t.cartao_id = c.id 
+                   AND t.user_id = $1 
+                   AND t.tipo = 'despesa' 
+                   AND t.pago = FALSE), 0
+              ) as limite_comprometido
+       FROM cartoes c
+       WHERE c.user_id = $1
+       ORDER BY c.nome ASC`,
+      [uid]
+    );
+
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+
+    const cartoes = await Promise.all(
+      result.rows.map(async (cartao) => {
+        const limiteTotal = parseFloat(cartao.limite || 0);
+        const limiteComprometido = parseFloat(cartao.limite_comprometido || 0);
+        const limiteDisponivel = Math.max(0, limiteTotal - limiteComprometido);
+
+        const faturaAtual = await pool.query(
+          `SELECT COALESCE(SUM(valor), 0) as total
+           FROM transacoes
+           WHERE cartao_id = $1 AND user_id = $2 AND tipo = 'despesa' AND fatura_ano = $3 AND fatura_mes = $4 AND pago = FALSE`,
+          [cartao.id, uid, anoAtual, mesAtual]
+        );
+
+        return {
+          id: cartao.id,
+          nome: cartao.nome,
+          bandeira: cartao.bandeira,
+          limite: limiteTotal,
+          limite_disponivel: Math.round(limiteDisponivel * 100) / 100,
+          dia_fechamento: cartao.dia_fechamento,
+          dia_vencimento: cartao.dia_vencimento,
+          fatura_atual_aberta: parseFloat(faturaAtual.rows[0].total || 0),
+        };
+      })
+    );
+
+    res.json(cartoes);
+  } catch (error) {
+    console.error('Erro ao listar cartões no bot:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });

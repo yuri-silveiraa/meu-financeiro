@@ -12,6 +12,7 @@ import estatisticasRoutes from './routes/estatisticas.js';
 import previsoesRoutes from './routes/previsoes.js';
 import botRoutes from './routes/bot.js';
 import whatsappRoutes from './routes/whatsapp.js';
+import cartoesRoutes from './routes/cartoes.js';
 
 export function createApp() {
   const app = express();
@@ -55,6 +56,7 @@ export function createApp() {
   app.use('/api/estatisticas', estatisticasRoutes);
   app.use('/api/previsoes', previsoesRoutes);
   app.use('/api/whatsapp', whatsappRoutes);
+  app.use('/api/cartoes', cartoesRoutes);
   app.use('/bot', botRoutes);
 
   // Rota de saúde
