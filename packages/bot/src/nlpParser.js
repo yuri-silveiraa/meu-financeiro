@@ -107,24 +107,71 @@ function inferirTipoPagamento(texto) {
   return null;
 }
 
-export function parseTransacao(texto, categorias = []) {
+export function parseTransacao(texto, categorias = [], cartoes = []) {
   const valor = parseValor(texto);
   const data = parseData(texto);
   const tipo = inferirTipo(texto);
-  const tipo_pagamento = inferirTipoPagamento(texto);
+  let tipo_pagamento = inferirTipoPagamento(texto);
   const categoria_id = inferirCategoria(texto, categorias);
 
-  // Extrair descrição: tudo que sobrou depois de remover valor, data e tipo
+  // Extrair parcelas (ex: "em 3x", "10x", "3 parcelas", "4 vezes")
+  let total_parcelas = 1;
+  const parcelaMatch = texto.match(/(?:em\s*)?(\d{1,2})\s*(?:x|vezes|parcelas)\b/i);
+  if (parcelaMatch) {
+    const num = parseInt(parcelaMatch[1], 10);
+    if (num > 1 && num <= 72) {
+      total_parcelas = num;
+      tipo_pagamento = 'credito';
+    }
+  }
+
+  // Identificar cartão mencionado
+  let cartao_id = null;
+  let cartao_nome = null;
+  if (cartoes && cartoes.length > 0) {
+    const normalize = (str) =>
+      (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const textNorm = normalize(texto);
+
+    const cartaoEncontrado = cartoes.find((c) => {
+      const nomeNorm = normalize(c.nome);
+      const bandNorm = normalize(c.bandeira);
+
+      if (textNorm.includes(nomeNorm)) return true;
+      if (bandNorm && bandNorm !== 'outro' && textNorm.includes(bandNorm)) return true;
+
+      // Verifica cada palavra do nome do cartão (>= 3 letras, ex: "itau" em "itau black")
+      const palavras = nomeNorm.split(/\s+/).filter((p) => p.length >= 3);
+      return palavras.some((p) => new RegExp(`\\b${p}\\b`, 'i').test(textNorm));
+    });
+
+    if (cartaoEncontrado) {
+      cartao_id = cartaoEncontrado.id;
+      cartao_nome = cartaoEncontrado.nome;
+      tipo_pagamento = 'credito';
+    } else if (tipo_pagamento === 'credito' && cartoes.length === 1) {
+      cartao_id = cartoes[0].id;
+      cartao_nome = cartoes[0].nome;
+    }
+  }
+
+  // Extrair descrição: tudo que sobrou depois de remover valor, data, tipo, cartão e parcelas
   let descricao = texto
     .replace(/r\$\s*[\d.,]+/gi, '')
     .replace(/\d+[\.,]?\d*\s*(?:reais?|rs)?/gi, '')
     .replace(/hoje|amanhã|ontem/gi, '')
-    .replace(/pix|crédito|credito|débito|debito|dinheiro|boleto/gi, '')
+    .replace(/(?:em\s*)?\d{1,2}\s*(?:x|vezes|parcelas)\b/gi, '')
+    .replace(/pix|crédito|credito|débito|debito|dinheiro|boleto|cartão|cartao/gi, '')
     .replace(/^(gastei|paguei|comprei|perdi|desembolsei|gasto|recebi|ganhei|entrou|pagou)\s*/gi, '')
     .replace(/^\s*(por|de|no|na|em|com|um|uma)\s+/gi, '')
     .replace(/\s+(por|de|no|na|em|com|um|uma|no|na)\s+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+  if (cartao_nome) {
+    const regexCard = new RegExp(`\\b${cartao_nome}\\b`, 'gi');
+    descricao = descricao.replace(regexCard, '').trim();
+  }
 
   if (descricao.length < 3) descricao = null;
 
@@ -135,6 +182,9 @@ export function parseTransacao(texto, categorias = []) {
     descricao,
     tipo_pagamento,
     categoria_id,
+    cartao_id,
+    cartao_nome,
+    total_parcelas,
     ehDespesa: tipo === 'despesa',
     ehReceita: tipo === 'receita',
   };

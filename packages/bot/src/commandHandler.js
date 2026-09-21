@@ -5,6 +5,7 @@ import {
   getTransacoes,
   criarTransacao,
   getAlertas,
+  getCartoes,
 } from './apiClient.js';
 import { parseTransacao, extrairPeriodo } from './nlpParser.js';
 
@@ -17,6 +18,7 @@ const HELP_TEXT = `📋 *Comandos disponíveis*
 
 💰 *Financeiros*
 • *saldo* — Resumo do mês atual
+• *fatura* ou *cartões* — Limites e faturas de cartão
 • *gastei [valor] [descrição]* — Registrar despesa
 • *recebi [valor] [descrição]* — Registrar receita
 • *pendentes* — Contas a pagar
@@ -34,6 +36,7 @@ const HELP_TEXT = `📋 *Comandos disponíveis*
 
 💡 *Dicas de uso natural:*
 _"Gastei 45 reais no almoço"_
+_"Comprei tênis 300 em 3x no nubank"_
 _"Comprei roupa por 120 no PIX"_
 _"Recebi 3500 de salário"_
 _"Uber 35"_
@@ -78,6 +81,10 @@ export async function handleCommand(text, userId) {
 
   if (lower.startsWith('resumo')) {
     return handleResumo(userId, lower);
+  }
+
+  if (lower === 'fatura' || lower === 'faturas' || lower === 'cartao' || lower === 'cartoes' || lower.startsWith('fatura') || lower.startsWith('cartao') || lower.startsWith('cartões')) {
+    return handleCartoesEFaturas(userId);
   }
 
   if (lower.startsWith('gastei') || lower.startsWith('paguei') || lower.startsWith('comprei') ||
@@ -210,10 +217,30 @@ Despesas: R$ ${stats.despesas.toFixed(2)}
 ${emoji} *Saldo:* R$ ${stats.saldo.toFixed(2)}`;
 }
 
+async function handleCartoesEFaturas(userId) {
+  const cartoes = await getCartoes(userId);
+  if (!cartoes || cartoes.length === 0) {
+    return '💳 Você ainda não possui nenhum cartão de crédito cadastrado.';
+  }
+
+  let msg = '💳 *Seus Cartões e Faturas*\n\n';
+  for (const c of cartoes) {
+    msg += `*${c.nome}* (${(c.bandeira || 'crédito').toUpperCase()})\n`;
+    msg += `• Limite Total: R$ ${c.limite.toFixed(2)}\n`;
+    msg += `• Limite Disponível: R$ ${c.limite_disponivel.toFixed(2)}\n`;
+    msg += `• Fatura Aberta Atual: R$ ${c.fatura_atual_aberta.toFixed(2)}\n`;
+    msg += `• Fecha dia ${c.dia_fechamento} | Vence dia ${c.dia_vencimento}\n\n`;
+  }
+  return msg.trim();
+}
+
 async function handleRegistrarDespesa(text, userId) {
   try {
-    const categorias = await getCategorias(userId);
-    const parsed = parseTransacao(text, categorias);
+    const [categorias, cartoes] = await Promise.all([
+      getCategorias(userId),
+      getCartoes(userId),
+    ]);
+    const parsed = parseTransacao(text, categorias, cartoes);
 
     if (!parsed.valor) {
       return '❌ Não consegui identificar o valor. Exemplo: _"Gastei 45 reais no almoço"_';
@@ -226,13 +253,24 @@ async function handleRegistrarDespesa(text, userId) {
       tipo: 'despesa',
       tipo_pagamento: parsed.tipo_pagamento,
       categoria_id: parsed.categoria_id,
+      cartao_id: parsed.cartao_id,
+      total_parcelas: parsed.total_parcelas,
     });
 
     const catMsg = parsed.categoria_id ? ` (${categorias.find(c => c.id === parsed.categoria_id)?.nome || ''})` : '';
+    let extraMsg = '';
+    if (parsed.cartao_nome) {
+      extraMsg += `\n💳 Cartão: *${parsed.cartao_nome}*`;
+    }
+    if (parsed.total_parcelas > 1) {
+      const valorParcela = (parsed.valor / parsed.total_parcelas).toFixed(2);
+      extraMsg += `\n🔢 Parcelamento: *${parsed.total_parcelas}x de R$ ${valorParcela}*`;
+    }
+
     return `✅ *Despesa registrada!*
 
 💰 R$ ${parsed.valor.toFixed(2)}${catMsg}
-📅 ${parsed.data}${parsed.descricao ? `\n📝 ${parsed.descricao}` : ''}`;
+📅 ${parsed.data}${parsed.descricao ? `\n📝 ${parsed.descricao}` : ''}${extraMsg}`;
   } catch (err) {
     return `❌ Erro ao registrar: ${err.message}`;
   }

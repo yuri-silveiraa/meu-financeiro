@@ -56,16 +56,22 @@ export async function getTransacoes(userId, { mes, ano, tipo, pago } = {}) {
   return res.json();
 }
 
-export async function criarTransacao(userId, { data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id }) {
+export async function criarTransacao(userId, { data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id, cartao_id, total_parcelas }) {
   const res = await fetch(`${BACKEND_URL}/bot/transacao`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ userId, data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id }),
+    body: JSON.stringify({ userId, data, descricao, valor, tipo, tipo_pagamento, categoria_id, conta_id, cartao_id, total_parcelas }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Erro ao criar transação' }));
     throw new Error(err.error || 'Erro ao criar transação');
   }
+  return res.json();
+}
+
+export async function getCartoes(userId) {
+  const res = await fetch(`${BACKEND_URL}/bot/cartoes/${userId}`, { headers });
+  if (!res.ok) return [];
   return res.json();
 }
 
