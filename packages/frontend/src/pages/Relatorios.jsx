@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import { CreditCardOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { getMonthName, getYearOptions } from '../utils/date';
 import { api } from '../services/api';
@@ -7,6 +8,8 @@ import { api } from '../services/api';
 function Relatorios() {
   const [transacoes, setTransacoes] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [cartoesAnual, setCartoesAnual] = useState(null);
+  const [modoGraficoCartao, setModoGraficoCartao] = useState('status'); // 'status' | 'cartoes'
   const [ano, setAno] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -21,12 +24,14 @@ function Relatorios() {
     setLoading(true);
     setError(null);
     try {
-      const [t, c] = await Promise.all([
+      const [t, c, ca] = await Promise.all([
         api.getTransacoes({ dataInicio: `${ano}-01-01`, dataFim: `${ano}-12-31` }),
-        api.getCategorias()
+        api.getCategorias(),
+        api.getEstatisticasCartoesAnual(ano),
       ]);
       setTransacoes(t);
       setCategorias(c);
+      setCartoesAnual(ca);
     } catch (err) {
       setError(err.message || 'Erro ao carregar dados');
       console.error(err);
@@ -135,6 +140,82 @@ function Relatorios() {
           <div className="empty-state">Nenhuma despesa registrada</div>
         )}
       </div>
+
+      {cartoesAnual && cartoesAnual.cartoes && cartoesAnual.cartoes.length > 0 && (
+        <div className="card" style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CreditCardOutlined style={{ fontSize: 20, color: '#6366f1' }} />
+              <h3 style={{ margin: 0 }}>Evolução de Faturas de Cartão ({ano})</h3>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className={modoGraficoCartao === 'status' ? 'btn-primary' : 'btn-secondary'}
+                style={{ padding: '6px 12px', minHeight: 32, fontSize: 13 }}
+                onClick={() => setModoGraficoCartao('status')}
+              >
+                Pagas vs Abertas
+              </button>
+              <button
+                type="button"
+                className={modoGraficoCartao === 'cartoes' ? 'btn-primary' : 'btn-secondary'}
+                style={{ padding: '6px 12px', minHeight: 32, fontSize: 13 }}
+                onClick={() => setModoGraficoCartao('cartoes')}
+              >
+                Por Cartão
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
+            <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 12, color: '#64748b' }}>Total Faturado no Ano</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>
+                {formatCurrency(cartoesAnual.totalAno || 0)}
+              </div>
+            </div>
+            <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 8, border: '1px solid #bbf7d0' }}>
+              <div style={{ fontSize: 12, color: '#166534' }}>Faturas Pagas</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#15803d', marginTop: 4 }}>
+                {formatCurrency(cartoesAnual.totalPagoAno || 0)}
+              </div>
+            </div>
+            <div style={{ background: '#fef3c7', padding: 14, borderRadius: 8, border: '1px solid #fde68a' }}>
+              <div style={{ fontSize: 12, color: '#92400e' }}>Faturas em Aberto</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#b45309', marginTop: 4 }}>
+                {formatCurrency(cartoesAnual.totalAbertoAno || 0)}
+              </div>
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={cartoesAnual.dadosMensais}>
+              <XAxis dataKey="nome" />
+              <YAxis />
+              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Legend />
+              {modoGraficoCartao === 'status' ? (
+                <>
+                  <Bar dataKey="totalPago" name="Faturas Pagas" fill="#22c55e" stackId="status" />
+                  <Bar dataKey="totalAberto" name="Faturas em Aberto" fill="#f59e0b" stackId="status" />
+                </>
+              ) : (
+                cartoesAnual.cartoes.map((c) => (
+                  <Bar
+                    key={c.id}
+                    dataKey={c.nome}
+                    name={c.nome}
+                    fill={c.cor || '#6366f1'}
+                    stackId="cartoes"
+                  />
+                ))
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

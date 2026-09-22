@@ -72,6 +72,7 @@ export const api = {
 
   // Estatísticas
   getEstatisticas: (mes, ano) => request(`/api/estatisticas?mes=${mes}&ano=${ano}`),
+  getEstatisticasCartoesAnual: (ano) => request(`/api/estatisticas/cartoes-anual?ano=${ano}`),
 
   // Previsões
   getPrevisoes: () => request('/api/previsoes'),
