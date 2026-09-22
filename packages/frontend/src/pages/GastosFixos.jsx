@@ -328,23 +328,38 @@ function GastosFixos() {
 
       <div className="stats-grid compact-summary stats-split">
         <div className="stat-card despesa">
-          <div className="stat-label">Total Despesas</div>
+          <div className="stat-header">
+            <span className="stat-label">Total Despesas</span>
+            <span className="stat-indicator negative">↓</span>
+          </div>
           <div className="stat-value negative">{formatCurrency(totalDespesas)}</div>
         </div>
         <div className="stat-card receita">
-          <div className="stat-label">Total Receitas</div>
+          <div className="stat-header">
+            <span className="stat-label">Total Receitas</span>
+            <span className="stat-indicator positive">↑</span>
+          </div>
           <div className="stat-value positive">{formatCurrency(totalReceitas)}</div>
         </div>
         <div className="stat-card saldo">
-          <div className="stat-label">Saldo Fixo</div>
+          <div className="stat-header">
+            <span className="stat-label">Saldo Fixo</span>
+            <span className="stat-indicator saldo">⚡</span>
+          </div>
           <div className={`stat-value ${saldoFixo >= 0 ? 'positive' : 'negative'}`}>{formatCurrency(saldoFixo)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Quantidade</div>
+          <div className="stat-header">
+            <span className="stat-label">Quantidade</span>
+            <span className="stat-indicator neutral">📋</span>
+          </div>
           <div className="stat-value">{gastosFiltrados.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Próximo vencimento</div>
+          <div className="stat-header">
+            <span className="stat-label">Próximo vencimento</span>
+            <span className="stat-indicator neutral">📅</span>
+          </div>
           <div className="stat-value">{proximoVencimento ? `Dia ${proximoVencimento}` : '-'}</div>
         </div>
       </div>

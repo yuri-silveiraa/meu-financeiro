@@ -113,23 +113,35 @@ function Dashboard() {
 
       <div className="stats-grid">
         <div className="stat-card receita">
-          <div className="stat-label">Receitas do mês</div>
-          <div className="stat-value" style={{ color: '#22c55e' }}>{formatCurrency(estatisticas.receitas)}</div>
+          <div className="stat-header">
+            <span className="stat-label">Receitas do mês</span>
+            <span className="stat-indicator positive">↑</span>
+          </div>
+          <div className="stat-value positive">{formatCurrency(estatisticas.receitas)}</div>
         </div>
         <div className="stat-card despesa">
-          <div className="stat-label">Despesas do mês</div>
-          <div className="stat-value" style={{ color: '#ef4444' }}>{formatCurrency(estatisticas.despesas)}</div>
+          <div className="stat-header">
+            <span className="stat-label">Despesas do mês</span>
+            <span className="stat-indicator negative">↓</span>
+          </div>
+          <div className="stat-value negative">{formatCurrency(estatisticas.despesas)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Despesas Não Pagas</div>
+          <div className="stat-header">
+            <span className="stat-label">Despesas Não Pagas</span>
+            <span className="stat-indicator neutral" style={{ background: 'rgba(245, 158, 11, 0.16)', color: '#f59e0b' }}>⏳</span>
+          </div>
           <div className="stat-value" style={{ color: '#f59e0b' }}>{formatCurrency(estatisticas.despesasNaoPagas)}</div>
         </div>
         <div className="stat-card saldo">
-          <div className="stat-label">Saldo Projetado</div>
-          <div className="stat-value" style={{ color: estatisticas.saldoProjetado >= 0 ? '#22c55e' : '#ef4444' }}>
+          <div className="stat-header">
+            <span className="stat-label">Saldo Projetado</span>
+            <span className="stat-indicator saldo">⚡</span>
+          </div>
+          <div className={`stat-value ${estatisticas.saldoProjetado >= 0 ? 'positive' : 'negative'}`}>
             {formatCurrency(estatisticas.saldoProjetado)}
           </div>
-          <div style={{ fontSize: 10, color: '#6b7280' }}>(inclui não pagas)</div>
+          <div className="stat-note">(inclui não pagas)</div>
         </div>
 
         {/* Card Faturas do Mês */}
@@ -139,18 +151,18 @@ function Dashboard() {
           style={{ cursor: 'pointer', position: 'relative' }}
           title="Clique para gerenciar cartões e faturas"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CreditCardOutlined style={{ color: '#6366f1' }} /> Faturas do Mês
-            </div>
-            <RightOutlined style={{ fontSize: 11, color: '#9ca3af' }} />
+          <div className="stat-header">
+            <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CreditCardOutlined style={{ color: '#818cf8' }} /> Faturas do Mês
+            </span>
+            <RightOutlined style={{ fontSize: 11, color: 'var(--text-muted)' }} />
           </div>
-          <div className="stat-value" style={{ color: '#6366f1' }}>
+          <div className="stat-value" style={{ color: '#818cf8' }}>
             {formatCurrency(estatisticas.faturasMes?.total || 0)}
           </div>
           <div style={{ fontSize: 11, marginTop: 4 }}>
             {estatisticas.faturasMes?.qtd === 0 ? (
-              <span style={{ color: '#6b7280' }}>Sem faturas neste mês</span>
+              <span style={{ color: 'var(--text-muted)' }}>Sem faturas neste mês</span>
             ) : estatisticas.faturasMes?.todasPagas ? (
               <span style={{ color: '#10b981', fontWeight: 500 }}>✓ Faturas pagas</span>
             ) : (
@@ -168,16 +180,16 @@ function Dashboard() {
           style={{ cursor: 'pointer', position: 'relative' }}
           title="Clique para ver limites e faturas"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CreditCardOutlined style={{ color: '#0ea5e9' }} /> Limite dos Cartões
-            </div>
-            <RightOutlined style={{ fontSize: 11, color: '#9ca3af' }} />
+          <div className="stat-header">
+            <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CreditCardOutlined style={{ color: '#38bdf8' }} /> Limite dos Cartões
+            </span>
+            <RightOutlined style={{ fontSize: 11, color: 'var(--text-muted)' }} />
           </div>
-          <div className="stat-value" style={{ color: '#059669' }}>
+          <div className="stat-value positive">
             {formatCurrency(estatisticas.limitesCartoes?.limiteDisponivel || 0)}
           </div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
             livre de {formatCurrency(estatisticas.limitesCartoes?.limiteTotal || 0)}
           </div>
           {estatisticas.limitesCartoes?.limiteTotal > 0 && (

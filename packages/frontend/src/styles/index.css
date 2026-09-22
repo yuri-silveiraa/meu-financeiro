@@ -310,11 +310,14 @@ body {
 
 .stat-card {
   padding: 18px;
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-card);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .stat-card:hover {
@@ -334,18 +337,56 @@ body {
   border-left: 4px solid #3b82f6;
 }
 
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stat-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stat-indicator.positive {
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+}
+
+.stat-indicator.negative {
+  background: rgba(239, 68, 68, 0.14);
+  color: #dc2626;
+}
+
+.stat-indicator.saldo {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
+}
+
+.stat-indicator.neutral {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--text-secondary);
+}
+
 .stat-label {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
   font-weight: 500;
 }
 
 .stat-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .stat-value.positive {
@@ -357,7 +398,7 @@ body {
 }
 
 .stat-note {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 11px;
   margin-top: 6px;
 }
@@ -948,48 +989,52 @@ body {
 }
 
 .progress-bar {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
+  height: 9px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   background: #22c55e;
-  transition: width 0.3s;
+  border-radius: 999px;
+  transition: width 0.4s ease;
 }
 
 .filter-tabs {
   display: flex;
   gap: 4px;
-  background: #f1f5f9;
-  border-radius: 8px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
   padding: 4px;
   width: fit-content;
 }
 
 .filter-tab {
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s ease;
 }
 
 .filter-tab:hover {
-  color: #374151;
-  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
 }
 
 .filter-tab.active {
-  background: #fff;
-  color: #111827;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px var(--primary-glow);
+  font-weight: 600;
 }
 
 .finance-grid-hint {
@@ -1225,44 +1270,45 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+  padding: 14px 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-card);
   margin-bottom: 10px;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.3s ease;
   user-select: none;
 }
 
 .tx-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-hover);
 }
 
 .tx-card:active {
-  transform: scale(0.99);
+  transform: translateY(0);
 }
 
-/* Fundo Verde se Pago */
+.tx-accent-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
+}
+
 .tx-card.tx-card-paid {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.3);
 }
 
-.tx-card.tx-card-paid:hover {
-  border-color: #86efac;
-}
-
-/* Fundo Vermelho se Pendente / Não Pago */
 .tx-card.tx-card-unpaid {
-  background: #fef2f2;
-  border-color: #fecaca;
-}
-
-.tx-card.tx-card-unpaid:hover {
-  border-color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .tx-card-left {
@@ -1284,13 +1330,13 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 3px;
+  gap: 4px;
 }
 
 .tx-desc {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1301,16 +1347,47 @@ body {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
 }
 
 .tx-cat-tag {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 1px 6px;
-  border-radius: 4px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.tx-badge-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.tx-badge-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 11px;
 }
 
 .tx-dot-mini {
@@ -1321,21 +1398,22 @@ body {
 }
 
 .tx-date {
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 .tx-valor {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .tx-valor.receita {
-  color: #15803d;
+  color: #16a34a;
 }
 
 .tx-valor.despesa {
-  color: #b91c1c;
+  color: #dc2626;
 }
 
 .status-pill {
@@ -1345,26 +1423,26 @@ body {
   font-weight: 600;
   padding: 3px 10px;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .status-pill:hover {
-  opacity: 0.85;
+  transform: scale(1.04);
 }
 
 .status-pill.is-paid {
-  background: #dcfce7;
+  background: rgba(34, 197, 94, 0.12);
   color: #166534;
-  border: 1px solid #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .status-pill.is-unpaid {
-  background: #fee2e2;
+  background: rgba(239, 68, 68, 0.12);
   color: #991b1b;
-  border: 1px solid #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 /* Visibilidade da barra de busca/filtro mobile vs desktop */
@@ -1540,7 +1618,11 @@ body {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, opacity 0.3s ease, filter 0.3s ease;
+  box-sizing: border-box;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease, border-color 0.22s ease;
   user-select: none;
   color: #ffffff;
 }
@@ -1574,17 +1656,18 @@ body {
 
 /* Cartão NÃO SELECIONADO: Mantém a cor original do cartão com opacidade suave */
 .credit-card-item.is-unselected {
-  opacity: 0.82;
-  filter: brightness(0.92);
-  transform: scale(0.98);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0.85;
+  filter: brightness(0.94);
+  transform: translateY(0);
+  border: 2px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
 }
 
 .credit-card-item.is-unselected:hover {
-  opacity: 0.98;
+  opacity: 1;
   filter: brightness(1);
-  transform: translateY(-3px) scale(1);
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.35);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
 }
 
@@ -1592,31 +1675,13 @@ body {
 .credit-card-item.is-selected {
   opacity: 1;
   filter: brightness(1.02);
-  transform: translateY(-5px) scale(1.02);
+  transform: translateY(-4px);
   border: 2px solid #ffffff;
   box-shadow:
     0 0 0 1px #ffffff,
-    0 0 20px rgba(255, 255, 255, 0.8),
-    0 0 40px var(--card-neon-color, rgba(99, 102, 241, 0.75)),
-    0 16px 32px rgba(0, 0, 0, 0.45);
-  animation: neon-pulse 3s infinite alternate ease-in-out;
-}
-
-@keyframes neon-pulse {
-  0% {
-    box-shadow:
-      0 0 0 1px #ffffff,
-      0 0 18px rgba(255, 255, 255, 0.7),
-      0 0 32px var(--card-neon-color, rgba(99, 102, 241, 0.65)),
-      0 14px 28px rgba(0, 0, 0, 0.4);
-  }
-  100% {
-    box-shadow:
-      0 0 0 2px #ffffff,
-      0 0 26px rgba(255, 255, 255, 0.95),
-      0 0 50px var(--card-neon-color, rgba(99, 102, 241, 0.9)),
-      0 18px 36px rgba(0, 0, 0, 0.5);
-  }
+    0 0 18px rgba(255, 255, 255, 0.8),
+    0 0 38px var(--card-neon-color, rgba(99, 102, 241, 0.75)),
+    0 14px 30px rgba(0, 0, 0, 0.45);
 }
 
 /* Badge Neon SELECIONADO */
@@ -1731,6 +1796,161 @@ body {
   --ag-range-selection-border-color: #3b82f6;
 }
 
+/* =========================================================
+   METAS: MODERN GOAL CARDS
+   ========================================================= */
+.meta-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.meta-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-hover);
+}
+
+.meta-card.is-completed {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.meta-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.meta-card-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.meta-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.meta-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.meta-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.meta-status-pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.meta-status-pill.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.meta-status-pill.completed {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.meta-status-pill.expired {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.meta-progress-section {
+  margin: 6px 0 16px;
+}
+
+.meta-values-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 10px 14px;
+  background: var(--bg-card-subtle);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+
+.meta-val-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-val-item.right {
+  align-items: flex-end;
+}
+
+.meta-val-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.meta-val-amount {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.meta-val-amount.current {
+  color: var(--primary);
+}
+
+.meta-val-amount.target {
+  color: var(--text-primary);
+}
+
+.meta-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 12px;
+}
+
+.meta-deadline-pill {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.meta-deadline-pill.expired {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* =========================================================
+   MODO ESCURO: OVERRIDES GLOBAIS DE ALTO CONTRASTE
+   ========================================================= */
 [data-theme='dark'] .tx-card {
   background: var(--bg-card);
   border-color: var(--border-color);
@@ -1738,22 +1958,93 @@ body {
 }
 
 [data-theme='dark'] .tx-card:hover {
-  background: var(--bg-hover);
+  background: var(--bg-card-hover);
   border-color: var(--border-hover);
 }
 
 [data-theme='dark'] .tx-card.tx-card-paid {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 [data-theme='dark'] .tx-card.tx-card-unpaid {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
 [data-theme='dark'] .tx-desc {
   color: #f8fafc;
+}
+
+[data-theme='dark'] .tx-valor.receita,
+[data-theme='dark'] .stat-value.positive,
+[data-theme='dark'] .money-cell.income {
+  color: #4ade80 !important;
+}
+
+[data-theme='dark'] .tx-valor.despesa,
+[data-theme='dark'] .stat-value.negative,
+[data-theme='dark'] .money-cell.expense {
+  color: #f87171 !important;
+}
+
+[data-theme='dark'] .status-pill.is-paid {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+[data-theme='dark'] .status-pill.is-unpaid {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+[data-theme='dark'] .meta-status-pill.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+[data-theme='dark'] .meta-status-pill.completed {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+[data-theme='dark'] .meta-status-pill.expired {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+[data-theme='dark'] .meta-deadline-pill.expired {
+  color: #f87171;
+}
+
+[data-theme='dark'] .btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+[data-theme='dark'] .checkbox-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .settings-row {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .settings-row-description {
+  color: var(--text-secondary);
 }
 
 [data-theme='dark'] .transacao-row {
@@ -1761,7 +2052,7 @@ body {
 }
 
 [data-theme='dark'] .transacao-row:hover {
-  background: var(--bg-hover);
+  background: var(--bg-card-hover);
 }
 
 [data-theme='dark'] .nav-arrow {
@@ -1771,6 +2062,41 @@ body {
 }
 
 [data-theme='dark'] .nav-arrow:hover {
-  background: var(--bg-hover);
+  background: var(--bg-card-hover);
   border-color: var(--border-hover);
+}
+
+[data-theme='dark'] .tipo-badge.credito {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .tipo-badge.debito {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+[data-theme='dark'] .tipo-badge.pix {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .tipo-badge.dinheiro {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+
+[data-theme='dark'] .tipo-badge.boleto {
+  background: rgba(139, 92, 246, 0.18);
+  color: #c084fc;
+}
+
+[data-theme='dark'] .tipo-badge.parcela {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+}
+
+[data-theme='dark'] .tipo-badge.recorrente {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
 }

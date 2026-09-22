@@ -94,16 +94,25 @@ function Relatorios() {
 
       <div className="stats-grid">
         <div className="stat-card receita">
-          <div className="stat-label">Total de Receitas ({ano})</div>
-          <div className="stat-value" style={{ color: '#22c55e' }}>{formatCurrency(totalReceitas)}</div>
+          <div className="stat-header">
+            <span className="stat-label">Total de Receitas ({ano})</span>
+            <span className="stat-indicator positive">↑</span>
+          </div>
+          <div className="stat-value positive">{formatCurrency(totalReceitas)}</div>
         </div>
         <div className="stat-card despesa">
-          <div className="stat-label">Total de Despesas ({ano})</div>
-          <div className="stat-value" style={{ color: '#ef4444' }}>{formatCurrency(totalDespesas)}</div>
+          <div className="stat-header">
+            <span className="stat-label">Total de Despesas ({ano})</span>
+            <span className="stat-indicator negative">↓</span>
+          </div>
+          <div className="stat-value negative">{formatCurrency(totalDespesas)}</div>
         </div>
         <div className="stat-card saldo">
-          <div className="stat-label">Saldo do Ano</div>
-          <div className="stat-value" style={{ color: totalReceitas - totalDespesas >= 0 ? '#22c55e' : '#ef4444' }}>
+          <div className="stat-header">
+            <span className="stat-label">Saldo do Ano</span>
+            <span className="stat-indicator saldo">⚡</span>
+          </div>
+          <div className={`stat-value ${totalReceitas - totalDespesas >= 0 ? 'positive' : 'negative'}`}>
             {formatCurrency(totalReceitas - totalDespesas)}
           </div>
         </div>

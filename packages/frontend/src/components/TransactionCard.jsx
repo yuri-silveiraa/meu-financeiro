@@ -2,6 +2,11 @@ import { formatCurrency } from '../utils/currency';
 
 const formatDate = (value) => {
   if (!value) return '';
+  // Avoid timezone shifts on YYYY-MM-DD
+  const parts = value.split('T')[0].split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
   return new Date(value).toLocaleDateString('pt-BR');
 };
 
@@ -9,6 +14,7 @@ const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
   const isPaid = !!transaction.pago;
   const isReceita = transaction.tipo === 'receita';
   const dataFormatada = formatDate(transaction.data);
+  const accentColor = transaction.categoria_cor || (isReceita ? '#22c55e' : '#ef4444');
 
   return (
     <div
@@ -16,6 +22,7 @@ const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
       onClick={() => onEdit?.(transaction)}
       role="button"
       tabIndex={0}
+      style={{ '--tx-accent-color': accentColor }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           onEdit?.(transaction);
@@ -23,6 +30,7 @@ const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
       }}
     >
       <div className="tx-card-left">
+        <span className="tx-accent-bar" style={{ background: accentColor }} />
         <div className="tx-info">
           <span className="tx-desc" title={transaction.descricao || 'Sem descrição'}>
             {transaction.descricao || 'Sem descrição'}
@@ -37,12 +45,16 @@ const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
                 {transaction.categoria_nome}
               </span>
             )}
-            {transaction.cartao_nome && (
-              <span className="tx-cat-tag" style={{ background: '#ede9fe', color: '#6d28d9' }}>
+            {transaction.cartao_nome ? (
+              <span className="tx-badge-card">
                 💳 {transaction.cartao_nome}
                 {transaction.total_parcelas > 1 ? ` (${transaction.parcela_atual}/${transaction.total_parcelas})` : ''}
               </span>
-            )}
+            ) : transaction.conta_nome ? (
+              <span className="tx-badge-account">
+                🏦 {transaction.conta_nome}
+              </span>
+            ) : null}
             {dataFormatada && <span className="tx-date">{dataFormatada}</span>}
           </div>
         </div>

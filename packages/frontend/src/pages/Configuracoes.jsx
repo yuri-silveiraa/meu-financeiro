@@ -266,13 +266,13 @@ function Configuracoes() {
 
       <div className="card" style={{ marginTop: 24 }}>
         <h3 style={{ marginBottom: 16 }}>Ajuda - Importação de CSV</h3>
-        <div style={{ fontSize: 14, color: '#374151' }}>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
           <p style={{ marginBottom: 12 }}>Para importar extratos bancários, o arquivo CSV deve conter colunas como:</p>
           <ul style={{ paddingLeft: 20 }}>
-            <li><strong>data</strong> - Data da transação (formato YYYY-MM-DD)</li>
-            <li><strong>descricao</strong> - Descrição da transação</li>
-            <li><strong>valor</strong> - Valor da transação (positivo para receita, negativo para despesa)</li>
-            <li><strong>tipo_pagamento</strong> - (opcional) credito, debito, pix, dinheiro, boleto</li>
+            <li><strong style={{ color: 'var(--text-primary)' }}>data</strong> - Data da transação (formato YYYY-MM-DD)</li>
+            <li><strong style={{ color: 'var(--text-primary)' }}>descricao</strong> - Descrição da transação</li>
+            <li><strong style={{ color: 'var(--text-primary)' }}>valor</strong> - Valor da transação (positivo para receita, negativo para despesa)</li>
+            <li><strong style={{ color: 'var(--text-primary)' }}>tipo_pagamento</strong> - (opcional) credito, debito, pix, dinheiro, boleto</li>
           </ul>
           <p style={{ marginTop: 12 }}>As categorias são automaticamente atribuídas quando a descrição contém o nome da categoria.</p>
         </div>
@@ -280,7 +280,7 @@ function Configuracoes() {
 
       <div className="card" style={{ marginTop: 24 }}>
         <h3 style={{ marginBottom: 16 }}>WhatsApp Bot</h3>
-        <div style={{ fontSize: 14, color: '#374151' }}>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
           <p style={{ marginBottom: 12 }}>Vincule seu WhatsApp para registrar despesas e receber alertas pelo chat.</p>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <button className="btn-primary" onClick={async () => {
@@ -299,16 +299,16 @@ function Configuracoes() {
               }
             }}>Gerar Código de Vinculação</button>
           </div>
-          <div style={{ marginTop: 12, padding: 12, background: '#f3f4f6', borderRadius: 8 }}>
-            <strong>Como vincular:</strong>
+          <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: 10 }}>
+            <strong style={{ color: 'var(--text-primary)' }}>Como vincular:</strong>
             <ol style={{ paddingLeft: 20, marginTop: 8 }}>
               <li>Clique em "Gerar Código de Vinculação" acima</li>
               <li>Anote o código de 6 dígitos</li>
               <li>Abra o WhatsApp e envie o código para o bot</li>
               <li>Pronto! Agora você pode usar comandos no WhatsApp</li>
             </ol>
-            <p style={{ marginTop: 8, color: '#6b7280' }}>
-              <strong>Comandos disponíveis:</strong> saldo, gastei, recebi, pendentes, gastosfixos, categorias, alertas
+            <p style={{ marginTop: 10, color: 'var(--text-muted)' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Comandos disponíveis:</strong> saldo, gastei, recebi, pendentes, gastosfixos, categorias, alertas
             </p>
           </div>
         </div>

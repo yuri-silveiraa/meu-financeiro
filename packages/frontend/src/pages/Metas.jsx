@@ -141,46 +141,75 @@ function Metas() {
         <div className="metas-grid">
           {metas.map((meta) => {
             const progresso = calcularProgresso(meta);
-            const progressColor = getProgressColor(progresso, meta.prazo);
             const vencido = isPrazoVencido(meta.prazo);
+            const isCompleted = progresso >= 100;
+
+            const gradientBar = isCompleted
+              ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
+              : vencido
+              ? 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)'
+              : progresso >= 80
+              ? 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)'
+              : progresso >= 30
+              ? 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)'
+              : 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)';
 
             return (
-              <div key={meta.id} className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 18 }}>{meta.nome}</h3>
+              <div key={meta.id} className={`card meta-card ${isCompleted ? 'is-completed' : ''}`}>
+                <div className="meta-card-header">
+                  <div className="meta-card-title-group">
+                    <h3 className="meta-title">{meta.nome}</h3>
                     {meta.categoria_nome && (
-                      <span style={{ fontSize: 12, color: '#6b7280' }}>{meta.categoria_nome}</span>
+                      <span className="meta-cat-pill">
+                        <span className="tx-dot-mini" style={{ background: '#3b82f6' }} />
+                        {meta.categoria_nome}
+                      </span>
                     )}
                   </div>
-                  <button className="btn-secondary" onClick={() => handleEdit(meta)} style={{ padding: '6px 10px' }}>
-                    <EditOutlined />
-                  </button>
+                  <div className="meta-header-actions">
+                    <span className={`meta-status-pill ${isCompleted ? 'completed' : vencido ? 'expired' : 'active'}`}>
+                      {isCompleted ? '✓ Concluído' : `${progresso.toFixed(1)}%`}
+                    </span>
+                    <button
+                      className="icon-button"
+                      onClick={() => handleEdit(meta)}
+                      title="Editar meta"
+                      type="button"
+                    >
+                      <EditOutlined />
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ color: '#6b7280' }}>Progresso</span>
-                    <span style={{ fontWeight: 500, color: progressColor }}>{progresso.toFixed(1)}%</span>
-                  </div>
+                <div className="meta-progress-section">
                   <div className="progress-bar">
                     <div
                       className="progress-fill"
-                      style={{ width: `${progresso}%`, background: progressColor, transition: 'width 0.4s ease' }}
+                      style={{
+                        width: `${Math.min(progresso, 100)}%`,
+                        background: gradientBar,
+                        transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
                     />
                   </div>
                 </div>
 
-                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                  <span>Atual: <strong>{formatCurrency(meta.valor_atual)}</strong></span>
-                  <span>Meta: <strong>{formatCurrency(meta.valor_meta)}</strong></span>
+                <div className="meta-values-row">
+                  <div className="meta-val-item">
+                    <span className="meta-val-label">Guardado</span>
+                    <span className="meta-val-amount current">{formatCurrency(meta.valor_atual)}</span>
+                  </div>
+                  <div className="meta-val-item right">
+                    <span className="meta-val-label">Alvo</span>
+                    <span className="meta-val-amount target">{formatCurrency(meta.valor_meta)}</span>
+                  </div>
                 </div>
 
                 {meta.prazo && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: vencido ? '#ef4444' : '#6b7280', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {vencido && <span>⚠️</span>}
-                    Prazo: {new Date(meta.prazo).toLocaleDateString('pt-BR')}
-                    {vencido && <span style={{ fontWeight: 600 }}> — Vencido</span>}
+                  <div className="meta-footer">
+                    <span className={`meta-deadline-pill ${vencido ? 'expired' : ''}`}>
+                      {vencido ? '⚠️ Vencido:' : '📅 Prazo:'} {new Date(meta.prazo).toLocaleDateString('pt-BR')}
+                    </span>
                   </div>
                 )}
               </div>
