@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Button, Drawer, ConfigProvider, Tooltip, theme as antdTheme } from 'antd';
 import {
   DashboardOutlined,
   SwapOutlined,
@@ -13,8 +13,11 @@ import {
   UserOutlined,
   MenuOutlined,
   CreditCardOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Transacoes from './pages/Transacoes';
@@ -55,6 +58,7 @@ function useIsMobile() {
 
 function AppLayout() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -100,7 +104,7 @@ function AppLayout() {
           onClose={closeDrawer}
           width={260}
           className="app-drawer"
-          styles={{ body: { padding: 0, background: '#001529' }, header: { display: 'none' } }}
+          styles={{ body: { padding: 0, background: '#070b14' }, header: { display: 'none' } }}
         >
           <div className="app-brand">
             <WalletOutlined />
@@ -136,12 +140,24 @@ function AppLayout() {
             )}
             <span className="app-header-title">{currentPageLabel}</span>
           </div>
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Button type="text" className="user-menu-btn">
-              <Avatar icon={<UserOutlined />} src={user?.avatar_url} size="small" />
-              {!isMobile && <span>{user?.name || user?.email}</span>}
-            </Button>
-          </Dropdown>
+          <div className="app-header-right">
+            <Tooltip title={isDark ? "Alternar para modo claro" : "Alternar para modo escuro (azul escuro)"}>
+              <button
+                type="button"
+                className="theme-toggle-btn"
+                onClick={toggleTheme}
+                aria-label="Alternar tema"
+              >
+                {isDark ? <SunOutlined /> : <MoonOutlined />}
+              </button>
+            </Tooltip>
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <Button type="text" className="user-menu-btn">
+                <Avatar icon={<UserOutlined />} src={user?.avatar_url} size="small" />
+                {!isMobile && <span>{user?.name || user?.email}</span>}
+              </Button>
+            </Dropdown>
+          </div>
         </Header>
         <Content className="app-content">
           <Routes>
@@ -170,21 +186,57 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to="/login" />;
 }
 
+function AppWithTheme() {
+  const { isDark } = useTheme();
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        token: isDark ? {
+          colorPrimary: '#3b82f6',
+          colorBgBase: '#080d19',
+          colorBgContainer: '#131f38',
+          colorBgElevated: '#1a2949',
+          colorBorder: '#1e2f52',
+          colorBorderSecondary: '#162440',
+          colorText: '#f8fafc',
+          colorTextSecondary: '#94a3b8',
+          borderRadius: 10,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        } : {
+          colorPrimary: '#2563eb',
+          colorBgBase: '#f8fafc',
+          colorBgContainer: '#ffffff',
+          colorBorder: '#e2e8f0',
+          colorText: '#0f172a',
+          borderRadius: 10,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        },
+      }}
+    >
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/*"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </ConfigProvider>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              <PrivateRoute>
-                <AppLayout />
-              </PrivateRoute>
-            }
-          />
-        </Routes>
+        <ThemeProvider>
+          <AppWithTheme />
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -30,10 +30,12 @@ import {
   DollarOutlined,
   CalendarOutlined,
   ExclamationCircleOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import { api } from '../services/api';
 import { formatCurrency } from '../utils/currency';
 import { getMonthName } from '../utils/date';
+import { useTheme } from '../contexts/ThemeContext';
 import EmptyState from '../components/EmptyState';
 
 const { Title, Text } = Typography;
@@ -98,6 +100,7 @@ function formatDataBr(dataStr) {
 }
 
 export default function Cartoes() {
+  const { isDark } = useTheme();
   const [cartoes, setCartoes] = useState([]);
   const [contas, setContas] = useState([]);
   const [selectedCartaoId, setSelectedCartaoId] = useState(null);
@@ -310,69 +313,94 @@ export default function Cartoes() {
       ) : (
         <>
           {/* CARDS VISUAIS DE CARTÕES */}
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
             {cartoes.map((cartao) => {
               const percentUsado = cartao.limite > 0
                 ? Math.min(100, Math.round((cartao.limite_comprometido / cartao.limite) * 100))
                 : 0;
               const isSelected = cartao.id === selectedCartaoId;
+              const cardColor = cartao.cor || '#6366f1';
 
               return (
                 <Col xs={24} sm={12} md={8} lg={6} key={cartao.id}>
-                  <Card
-                    hoverable
+                  <div
+                    className={`credit-card-item ${isSelected ? 'is-selected' : 'is-unselected'}`}
                     onClick={() => setSelectedCartaoId(cartao.id)}
                     style={{
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      border: isSelected ? `2px solid ${cartao.cor || '#6366f1'}` : '1px solid #e2e8f0',
-                      background: isSelected
-                        ? `linear-gradient(135deg, ${cartao.cor || '#4338ca'} 0%, #1e1b4b 100%)`
-                        : '#ffffff',
-                      color: isSelected ? '#ffffff' : 'inherit',
-                      boxShadow: isSelected ? '0 8px 20px rgba(99, 102, 241, 0.25)' : 'none',
-                      transition: 'all 0.3s ease',
+                      background: `linear-gradient(135deg, ${cardColor} 0%, #0a0e1c 115%)`,
+                      '--card-neon-color': cardColor,
                     }}
-                    bodyStyle={{ padding: 16 }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <Text strong style={{ fontSize: 16, color: isSelected ? '#ffffff' : 'inherit' }}>
-                        {cartao.nome}
-                      </Text>
-                      <Tag color={isSelected ? 'geekblue' : 'default'} style={{ textTransform: 'uppercase', margin: 0 }}>
-                        {cartao.bandeira || 'Crédito'}
-                      </Tag>
+                    {/* Topo do Cartão: Chip EMV, Aproximação & Badge */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="card-emv-chip" title="Chip de Segurança EMV" />
+                        <span className="card-nfc-icon" title="Pagamento por Aproximação">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M8.5 16.5a5 5 0 0 1 0-9" />
+                            <path d="M12 19a8.5 8.5 0 0 0 0-14" />
+                            <path d="M15.5 21.5a12 12 0 0 0 0-19" />
+                          </svg>
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {isSelected && (
+                          <span className="card-neon-badge">
+                            <CheckOutlined style={{ fontSize: 10 }} /> Ativo
+                          </span>
+                        )}
+                        <span className="card-brand-badge">
+                          {cartao.bandeira || 'Crédito'}
+                        </span>
+                      </div>
                     </div>
 
-                    <div style={{ marginBottom: 12 }}>
-                      <Text style={{ fontSize: 12, color: isSelected ? '#cbd5e1' : '#64748b' }}>Limite Disponível</Text>
-                      <div style={{ fontSize: 20, fontWeight: 'bold', color: isSelected ? '#34d399' : '#059669' }}>
+                    {/* Nome do Cartão */}
+                    <div style={{ zIndex: 1, marginTop: 14 }}>
+                      <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '0.03em', textShadow: '0 2px 4px rgba(0,0,0,0.6)', color: '#ffffff' }}>
+                        {cartao.nome}
+                      </div>
+                    </div>
+
+                    {/* Limite Disponível */}
+                    <div style={{ zIndex: 1, marginTop: 6 }}>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                        Limite Disponível
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#ffffff', textShadow: '0 2px 8px rgba(0,0,0,0.5)', marginTop: 2 }}>
                         {formatCurrency(cartao.limite_disponivel)}
                       </div>
-                      <Text style={{ fontSize: 11, color: isSelected ? '#94a3b8' : '#94a3b8' }}>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
                         de {formatCurrency(cartao.limite)} total
-                      </Text>
+                      </div>
                     </div>
 
-                    <Progress
-                      percent={percentUsado}
-                      size="small"
-                      status={percentUsado > 85 ? 'exception' : 'active'}
-                      strokeColor={isSelected ? (percentUsado > 85 ? '#ef4444' : '#38bdf8') : undefined}
-                      trailColor={isSelected ? 'rgba(255,255,255,0.2)' : undefined}
-                    />
+                    {/* Barra de Progresso com Glow */}
+                    <div style={{ zIndex: 1, marginTop: 8 }}>
+                      <Progress
+                        percent={percentUsado}
+                        size="small"
+                        showInfo={false}
+                        strokeColor={percentUsado > 85 ? '#ef4444' : (percentUsado > 60 ? '#f59e0b' : '#38bdf8')}
+                        trailColor="rgba(255, 255, 255, 0.2)"
+                      />
+                    </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 12, color: isSelected ? '#cbd5e1' : '#64748b' }}>
+                    {/* Datas de Fechamento e Vencimento */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'rgba(255,255,255,0.9)', zIndex: 1, marginTop: 8 }}>
                       <span>Fecha dia <b>{cartao.dia_fechamento}</b></span>
                       <span>Vence dia <b>{cartao.dia_vencimento}</b></span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12, borderTop: isSelected ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f1f5f9', paddingTop: 8 }}>
+                    {/* Ações (Editar e Excluir) */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 12, borderTop: '1px solid rgba(255,255,255,0.18)', paddingTop: 8, zIndex: 1 }}>
                       <Tooltip title="Editar Cartão">
                         <Button
                           type="text"
                           size="small"
-                          icon={<EditOutlined style={{ color: isSelected ? '#ffffff' : undefined }} />}
+                          className="card-action-btn"
+                          icon={<EditOutlined style={{ color: '#ffffff' }} />}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenModalCartao(cartao);
@@ -391,13 +419,13 @@ export default function Cartoes() {
                         <Button
                           type="text"
                           size="small"
-                          danger
-                          icon={<DeleteOutlined />}
+                          className="card-action-btn"
+                          icon={<DeleteOutlined style={{ color: '#fca5a5' }} />}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </Popconfirm>
                     </div>
-                  </Card>
+                  </div>
                 </Col>
               );
             })}
@@ -442,11 +470,11 @@ export default function Cartoes() {
                             key={`${f.fatura_ano}-${f.fatura_mes}`}
                             onClick={() => handleSelectFatura(f)}
                             style={{
-                              padding: 12,
-                              borderRadius: 8,
+                              padding: 14,
+                              borderRadius: 10,
                               cursor: 'pointer',
-                              border: isCurrentActive ? '2px solid #6366f1' : '1px solid #e2e8f0',
-                              background: isCurrentActive ? '#f5f3ff' : '#ffffff',
+                              border: isCurrentActive ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                              background: isCurrentActive ? (isDark ? 'rgba(59, 130, 246, 0.16)' : '#eff6ff') : 'var(--bg-card-subtle)',
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
@@ -462,7 +490,7 @@ export default function Cartoes() {
                               </Text>
                             </div>
                             <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontWeight: 'bold', color: f.pago ? '#059669' : '#dc2626' }}>
+                              <div style={{ fontWeight: 'bold', color: f.pago ? '#10b981' : '#ef4444' }}>
                                 {formatCurrency(f.total)}
                               </div>
                               {f.pago ? (
@@ -488,9 +516,10 @@ export default function Cartoes() {
                             alignItems: 'center',
                             flexWrap: 'wrap',
                             gap: 12,
-                            padding: '12px 16px',
-                            background: '#f8fafc',
-                            borderRadius: 8,
+                            padding: '14px 18px',
+                            background: 'var(--bg-card-subtle)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: 10,
                             marginBottom: 16,
                           }}
                         >

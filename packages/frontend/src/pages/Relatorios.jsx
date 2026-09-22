@@ -4,8 +4,21 @@ import { CreditCardOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { getMonthName, getYearOptions } from '../utils/date';
 import { api } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 
 function Relatorios() {
+  const { isDark } = useTheme();
+
+  const tooltipStyle = {
+    backgroundColor: isDark ? '#131f38' : '#ffffff',
+    borderColor: isDark ? '#1e2f52' : '#e2e8f0',
+    color: isDark ? '#f8fafc' : '#0f172a',
+    borderRadius: 8,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  };
+
+  const axisStroke = isDark ? '#94a3b8' : '#64748b';
+
   const [transacoes, setTransacoes] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cartoesAnual, setCartoesAnual] = useState(null);
@@ -100,12 +113,12 @@ function Relatorios() {
         <h3 style={{ marginBottom: 16 }}>Receitas vs Despesas por Mês</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={dadosMensais()}>
-            <XAxis dataKey="nome" />
-            <YAxis />
-            <Tooltip formatter={(value) => formatCurrency(value)} />
-            <Legend />
-            <Bar dataKey="receitas" name="Receitas" fill="#22c55e" />
-            <Bar dataKey="despesas" name="Despesas" fill="#ef4444" />
+            <XAxis dataKey="nome" stroke={axisStroke} />
+            <YAxis stroke={axisStroke} />
+            <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+            <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
+            <Bar dataKey="receitas" name="Receitas" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -114,10 +127,10 @@ function Relatorios() {
         <h3 style={{ marginBottom: 16 }}>Evolução do Saldo Mensal</h3>
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={dadosMensais()}>
-            <XAxis dataKey="nome" />
-            <YAxis />
-            <Tooltip formatter={(value) => formatCurrency(value)} />
-            <Line type="monotone" dataKey="saldo" stroke="#3b82f6" strokeWidth={2} />
+            <XAxis dataKey="nome" stroke={axisStroke} />
+            <YAxis stroke={axisStroke} />
+            <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+            <Line type="monotone" dataKey="saldo" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -127,12 +140,12 @@ function Relatorios() {
         {dadosPorCategoria().length > 0 ? (
           <div>
             {dadosPorCategoria().map((cat, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 12, height: 12, borderRadius: 2, background: cat.cor }}></span>
-                  <span>{cat.nome}</span>
+                  <span style={{ width: 12, height: 12, borderRadius: 3, background: cat.cor }}></span>
+                  <span style={{ color: 'var(--text-primary)' }}>{cat.nome}</span>
                 </div>
-                <span style={{ fontWeight: 500 }}>{formatCurrency(cat.total)}</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(cat.total)}</span>
               </div>
             ))}
           </div>
@@ -170,21 +183,21 @@ function Relatorios() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
-            <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 12, color: '#64748b' }}>Total Faturado no Ano</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginTop: 4 }}>
+            <div style={{ background: 'var(--bg-card-subtle)', padding: 14, borderRadius: 10, border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Total Faturado no Ano</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
                 {formatCurrency(cartoesAnual.totalAno || 0)}
               </div>
             </div>
-            <div style={{ background: '#f0fdf4', padding: 14, borderRadius: 8, border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: 12, color: '#166534' }}>Faturas Pagas</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#15803d', marginTop: 4 }}>
+            <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.12)' : '#f0fdf4', padding: 14, borderRadius: 10, border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid #bbf7d0' }}>
+              <div style={{ fontSize: 12, color: isDark ? '#34d399' : '#166534' }}>Faturas Pagas</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: isDark ? '#34d399' : '#15803d', marginTop: 4 }}>
                 {formatCurrency(cartoesAnual.totalPagoAno || 0)}
               </div>
             </div>
-            <div style={{ background: '#fef3c7', padding: 14, borderRadius: 8, border: '1px solid #fde68a' }}>
-              <div style={{ fontSize: 12, color: '#92400e' }}>Faturas em Aberto</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#b45309', marginTop: 4 }}>
+            <div style={{ background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#fef3c7', padding: 14, borderRadius: 10, border: isDark ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid #fde68a' }}>
+              <div style={{ fontSize: 12, color: isDark ? '#fbbf24' : '#92400e' }}>Faturas em Aberto</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: isDark ? '#fbbf24' : '#b45309', marginTop: 4 }}>
                 {formatCurrency(cartoesAnual.totalAbertoAno || 0)}
               </div>
             </div>
@@ -192,14 +205,14 @@ function Relatorios() {
 
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={cartoesAnual.dadosMensais}>
-              <XAxis dataKey="nome" />
-              <YAxis />
-              <Tooltip formatter={(value) => formatCurrency(value)} />
-              <Legend />
+              <XAxis dataKey="nome" stroke={axisStroke} />
+              <YAxis stroke={axisStroke} />
+              <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
               {modoGraficoCartao === 'status' ? (
                 <>
-                  <Bar dataKey="totalPago" name="Faturas Pagas" fill="#22c55e" stackId="status" />
-                  <Bar dataKey="totalAberto" name="Faturas em Aberto" fill="#f59e0b" stackId="status" />
+                  <Bar dataKey="totalPago" name="Faturas Pagas" fill="#22c55e" stackId="status" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="totalAberto" name="Faturas em Aberto" fill="#f59e0b" stackId="status" radius={[2, 2, 0, 0]} />
                 </>
               ) : (
                 cartoesAnual.cartoes.map((c) => (
@@ -209,6 +222,7 @@ function Relatorios() {
                     name={c.nome}
                     fill={c.cor || '#6366f1'}
                     stackId="cartoes"
+                    radius={[2, 2, 0, 0]}
                   />
                 ))
               )}

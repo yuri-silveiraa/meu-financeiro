@@ -8,12 +8,25 @@ import { CreditCardOutlined, RightOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 import { getMonthName, getYearOptions } from '../utils/date';
 import { api } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
 import EmptyState from '../components/EmptyState';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#6b7280'];
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
+
+  const tooltipStyle = {
+    backgroundColor: isDark ? '#131f38' : '#ffffff',
+    borderColor: isDark ? '#1e2f52' : '#e2e8f0',
+    color: isDark ? '#f8fafc' : '#0f172a',
+    borderRadius: 8,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  };
+
+  const axisStroke = isDark ? '#94a3b8' : '#64748b';
+
   const [estatisticas, setEstatisticas] = useState({
     receitas: 0,
     despesas: 0,
@@ -168,7 +181,7 @@ function Dashboard() {
             livre de {formatCurrency(estatisticas.limitesCartoes?.limiteTotal || 0)}
           </div>
           {estatisticas.limitesCartoes?.limiteTotal > 0 && (
-            <div style={{ width: '100%', height: 4, background: '#e2e8f0', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: 4, background: 'var(--border-color)', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${estatisticas.limitesCartoes.percentualUsado}%`,
@@ -190,7 +203,7 @@ function Dashboard() {
               <CreditCardOutlined style={{ color: '#6366f1' }} />
               Projeção de Faturas dos Cartões (Próximos 6 Meses)
             </h3>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b7280' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>
               Valores já comprometidos por compras parceladas e gastos fixos em cada fatura
             </p>
           </div>
@@ -207,10 +220,10 @@ function Dashboard() {
         {estatisticas.projecaoFaturas?.some((p) => p.total > 0) ? (
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={estatisticas.projecaoFaturas}>
-              <XAxis dataKey="label" />
-              <YAxis tickFormatter={(val) => formatCurrency(val)} />
-              <Tooltip formatter={(value, name) => [formatCurrency(value), name]} />
-              <Legend />
+              <XAxis dataKey="label" stroke={axisStroke} />
+              <YAxis tickFormatter={(val) => formatCurrency(val)} stroke={axisStroke} />
+              <Tooltip formatter={(value, name) => [formatCurrency(value), name]} contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
               {estatisticas.cartoesInfo?.length > 0 ? (
                 estatisticas.cartoesInfo.map((cartao) => (
                   <Bar
@@ -255,7 +268,7 @@ function Dashboard() {
                     <Cell key={`cell-${index}`} fill={entry.cor || COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -272,10 +285,10 @@ function Dashboard() {
           {estatisticas.porPagamento.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={estatisticas.porPagamento.map(p => ({ ...p, tipo: p.tipo_pagamento || 'Outros' }))}>
-                <XAxis dataKey="tipo" />
-                <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Bar dataKey="total" fill="#3b82f6" />
+                <XAxis dataKey="tipo" stroke={axisStroke} />
+                <YAxis stroke={axisStroke} />
+                <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+                <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -293,10 +306,10 @@ function Dashboard() {
         {previsoes.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={previsoes} layout="vertical">
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="categoria" width={100} />
-              <Tooltip formatter={(value) => formatCurrency(value)} />
-              <Legend />
+              <XAxis type="number" stroke={axisStroke} />
+              <YAxis type="category" dataKey="categoria" width={100} stroke={axisStroke} />
+              <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
               <Bar dataKey="media_mensal" name="Média Mensal" radius={[0, 4, 4, 0]}>
                 {previsoes.map((entry, index) => (
                   <Cell

@@ -3,6 +3,7 @@ import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
+import { useTheme } from '../contexts/ThemeContext';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -56,6 +57,7 @@ function FinanceGrid({
   getRowId,
   selectionActions
 }) {
+  const { isDark } = useTheme();
   const gridApiRef = useRef(null);
   const [visibleRows, setVisibleRows] = useState(rowData?.length || 0);
   const [selectedRows, setSelectedRows] = useState([]);
@@ -156,7 +158,7 @@ function FinanceGrid({
         </div>
       )}
 
-      <div className="ag-theme-quartz finance-grid" style={{ height }}>
+      <div className={`ag-theme-quartz ${isDark ? 'ag-theme-quartz-dark' : ''} finance-grid`} style={{ height }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
