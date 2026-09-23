@@ -1,0 +1,60 @@
+name: Deploy Produção (Self-Hosted)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Permite disparar o deploy manualmente pela aba Actions do GitHub
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: self-hosted
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes automatizados (Frontend)
+        run: npm run test -w packages/frontend
+
+      - name: Testar build de produção do Frontend
+        run: npm run build -w packages/frontend
+
+      - name: Carregar variáveis de ambiente (.env)
+        run: |
+          # Se o .env não existir no diretório do job, tenta copiar de locais comuns na VPS
+          if [ ! -f ".env" ]; then
+            if [ -f "/opt/meu-financeiro/.env" ]; then
+              echo "Copiando .env de /opt/meu-financeiro/.env"
+              cp /opt/meu-financeiro/.env .env
+            elif [ -f "$HOME/.meu-financeiro.env" ]; then
+              echo "Copiando .env de $HOME/.meu-financeiro.env"
+              cp "$HOME/.meu-financeiro.env" .env
+            elif [ -f "$HOME/meu-financeiro/.env" ]; then
+              echo "Copiando .env de $HOME/meu-financeiro/.env"
+              cp "$HOME/meu-financeiro/.env" .env
+            else
+              echo "::warning ::Arquivo .env não encontrado em locais padrão. Certifique-se de que o .env está configurado na máquina!"
+            fi
+          fi
+
+      - name: Garantir rede do Traefik
+        run: |
+          docker network inspect traefik >/dev/null 2>&1 || docker network create traefik
+
+      - name: Subir contêineres com Docker Compose
+        run: |
+          docker compose up -d --build --remove-orphans
+
+      - name: Limpeza de imagens antigas
+        run: |
+          docker image prune -f
