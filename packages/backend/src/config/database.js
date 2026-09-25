@@ -3,9 +3,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const useSsl =
+  process.env.DATABASE_SSL === 'true' ||
+  Boolean(
+    process.env.DATABASE_URL &&
+    (process.env.DATABASE_URL.includes('sslmode=require') ||
+     process.env.DATABASE_URL.includes('ssl=true'))
+  );
+
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
