@@ -47,9 +47,9 @@ jobs:
             fi
           fi
 
-      - name: Garantir rede do Traefik
+      - name: Garantir rede do Traefik (web)
         run: |
-          docker network inspect traefik >/dev/null 2>&1 || docker network create traefik
+          docker network inspect web >/dev/null 2>&1 || docker network create web
 
       - name: Subir contêineres com Docker Compose
         run: |
