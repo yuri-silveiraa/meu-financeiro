@@ -22,3 +22,12 @@ export const getYearOptions = (startYear = 2020) => {
   }
   return options;
 };
+
+export const formatDataBr = (dataStr) => {
+  if (!dataStr) return '-';
+  const parts = String(dataStr).split('T')[0].split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dataStr;
+};
