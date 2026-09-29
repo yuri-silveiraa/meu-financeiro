@@ -1,13 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleOutlined } from '@ant-design/icons';
+import { GoogleOutlined, LoadingOutlined } from '@ant-design/icons';
 
 
 export default function Login() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const googleButtonRef = useRef(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -26,10 +28,20 @@ export default function Login() {
           client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
           callback: handleCredentialResponse,
         });
-        window.google.accounts.id.renderButton(
-          googleButtonRef.current,
-          { theme: 'outline', size: 'large', width: '100%' }
-        );
+
+        if (googleButtonRef.current) {
+          window.google.accounts.id.renderButton(
+            googleButtonRef.current,
+            {
+              theme: 'outline',
+              size: 'large',
+              width: 350,
+            }
+          );
+        }
+
+        // Tentar One Tap se disponível
+        window.google.accounts.id.prompt();
       }
     };
     document.body.appendChild(script);
@@ -41,10 +53,12 @@ export default function Login() {
 
   const handleCredentialResponse = async (response) => {
     try {
+      setIsLoggingIn(true);
       await login(response.credential);
       navigate('/');
     } catch (error) {
       console.error('Erro ao fazer login:', error);
+      setIsLoggingIn(false);
     }
   };
 
@@ -121,39 +135,72 @@ export default function Login() {
           Gerencie suas finanças, faturas de cartão e metas de forma moderna e inteligente.
         </p>
 
-        <div ref={googleButtonRef} style={{ display: 'flex', justifyContent: 'center' }}></div>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (window.google) {
-              window.google.accounts.id.prompt();
-            }
-          }}
+        <div
           style={{
-            marginTop: 16,
+            position: 'relative',
             width: '100%',
             height: 48,
-            borderRadius: 12,
-            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-            border: 'none',
-            color: '#ffffff',
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)',
-            transition: 'all 0.2s ease'
+            marginTop: 16,
           }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          onMouseEnter={() => !isLoggingIn && setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
-          <GoogleOutlined style={{ fontSize: 18 }} />
-          Entrar com Google
-        </button>
+          {/* Botão azul estilizado visível */}
+          <button
+            type="button"
+            disabled={isLoggingIn}
+            style={{
+              width: '100%',
+              height: 48,
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: 15,
+              fontWeight: 600,
+              cursor: isLoggingIn ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              boxShadow: isHovered
+                ? '0 6px 20px rgba(37, 99, 235, 0.45)'
+                : '0 4px 16px rgba(37, 99, 235, 0.35)',
+              transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+              transition: 'all 0.2s ease',
+              opacity: isLoggingIn ? 0.75 : 1,
+              pointerEvents: 'none',
+            }}
+          >
+            {isLoggingIn ? (
+              <LoadingOutlined style={{ fontSize: 18 }} />
+            ) : (
+              <GoogleOutlined style={{ fontSize: 18 }} />
+            )}
+            {isLoggingIn ? 'Entrando...' : 'Entrar com Google'}
+          </button>
+
+          {/* Overlay invisível do botão oficial do Google (aciona popup real no clique) */}
+          <div
+            ref={googleButtonRef}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              opacity: 0.001,
+              zIndex: 10,
+              cursor: 'pointer',
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: 'scale(1.05)',
+              transformOrigin: 'center center',
+            }}
+          />
+        </div>
 
         <div style={{
           marginTop: 28,
