@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { Modal, message } from 'antd';
-import FinanceGrid from '../components/FinanceGrid';
+import GastoFixoCard from '../components/GastoFixoCard';
 import { formatCurrency } from '../utils/currency';
 import { api } from '../services/api';
 import EmptyState from '../components/EmptyState';
@@ -375,14 +375,22 @@ function GastosFixos() {
           />
         </div>
 
-        <FinanceGrid
-          storageKey="finance-grid:gastos-fixos"
-          rowData={gastosFiltrados}
-          columnDefs={columnDefs}
-          loading={loading}
-          quickFilterText={quickSearch}
-          height={460}
-        />
+          <div className="transaction-list">
+            {gastosFiltrados.map((gasto) => (
+              <GastoFixoCard
+                key={gasto.id}
+                gasto={gasto}
+                onEdit={handleEdit}
+              />
+            ))}
+            {gastosFiltrados.length === 0 && (
+              <EmptyState
+                title="Nenhum gasto fixo encontrado"
+                description="Adicione novos gastos fixos usando o botão acima."
+                icon="📌"
+              />
+            )}
+          </div>
       </div>
 
       <Modal
