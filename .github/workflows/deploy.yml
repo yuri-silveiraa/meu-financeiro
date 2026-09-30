@@ -42,8 +42,12 @@ jobs:
             elif [ -f "$HOME/meu-financeiro/.env" ]; then
               echo "Copiando .env de $HOME/meu-financeiro/.env"
               cp "$HOME/meu-financeiro/.env" .env
+            elif [ -f "/etc/meu-financeiro/.env" ]; then
+              echo "Copiando .env de /etc/meu-financeiro/.env"
+              cp "/etc/meu-financeiro/.env" .env
             else
-              echo "::warning ::Arquivo .env não encontrado em locais padrão. Certifique-se de que o .env está configurado na máquina!"
+              echo "::error ::Arquivo .env não encontrado em nenhum dos locais esperados (/opt/meu-financeiro/.env, $HOME/.meu-financeiro.env, $HOME/meu-financeiro/.env)! Crie o arquivo .env com as configurações de produção antes de executar o deploy."
+              exit 1
             fi
           fi
 
@@ -54,6 +58,18 @@ jobs:
       - name: Subir contêineres com Docker Compose
         run: |
           docker compose up -d --build --remove-orphans
+
+      - name: Diagnóstico de Logs em caso de falha
+        if: failure()
+        run: |
+          echo "==================== LOGS BACKEND ===================="
+          docker compose logs --tail=100 backend || true
+          echo "==================== LOGS BANCO DE DADOS ===================="
+          docker compose logs --tail=100 db || true
+          echo "==================== LOGS BOT ===================="
+          docker compose logs --tail=100 bot || true
+          echo "==================== STATUS DOS CONTAINERS ===================="
+          docker compose ps -a || true
 
       - name: Limpeza de imagens antigas
         run: |
