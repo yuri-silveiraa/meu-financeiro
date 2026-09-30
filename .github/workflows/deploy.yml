@@ -33,7 +33,13 @@ jobs:
         run: |
           # Se o .env não existir no diretório do job, tenta copiar de locais comuns na VPS
           if [ ! -f ".env" ]; then
-            if [ -f "/opt/meu-financeiro/.env" ]; then
+            if [ -f "/home/deploy/apps/meu-financeiro/.env" ]; then
+              echo "Copiando .env de /home/deploy/apps/meu-financeiro/.env"
+              cp /home/deploy/apps/meu-financeiro/.env .env
+            elif [ -f "$HOME/apps/meu-financeiro/.env" ]; then
+              echo "Copiando .env de $HOME/apps/meu-financeiro/.env"
+              cp "$HOME/apps/meu-financeiro/.env" .env
+            elif [ -f "/opt/meu-financeiro/.env" ]; then
               echo "Copiando .env de /opt/meu-financeiro/.env"
               cp /opt/meu-financeiro/.env .env
             elif [ -f "$HOME/.meu-financeiro.env" ]; then
@@ -46,7 +52,7 @@ jobs:
               echo "Copiando .env de /etc/meu-financeiro/.env"
               cp "/etc/meu-financeiro/.env" .env
             else
-              echo "::error ::Arquivo .env não encontrado em nenhum dos locais esperados (/opt/meu-financeiro/.env, $HOME/.meu-financeiro.env, $HOME/meu-financeiro/.env)! Crie o arquivo .env com as configurações de produção antes de executar o deploy."
+              echo "::error ::Arquivo .env não encontrado em nenhum dos locais esperados (/home/deploy/apps/meu-financeiro/.env, /opt/meu-financeiro/.env, $HOME/.meu-financeiro.env)! Crie o arquivo .env com as configurações de produção antes de executar o deploy."
               exit 1
             fi
           fi
