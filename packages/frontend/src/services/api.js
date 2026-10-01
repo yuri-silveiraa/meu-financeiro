@@ -34,7 +34,7 @@ async function request(endpoint, options = {}) {
 
 export const api = {
   // Auth
-  loginWithGoogle: (credential) => request('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
+  loginWithGoogle: (credential, consentAccepted = false) => request('/auth/google', { method: 'POST', body: JSON.stringify({ credential, consentAccepted }) }),
   getMe: () => request('/auth/me'),
 
   // Transações
@@ -92,4 +92,8 @@ export const api = {
   // WhatsApp Bot
   gerarCodigoVinculacao: (phoneNumber) =>
     request('/api/whatsapp/vincular', { method: 'POST', body: JSON.stringify({ phoneNumber }) }),
+
+  // Privacidade / LGPD
+  exportMyData: () => request('/api/privacy/my-data'),
+  deleteMyAccount: () => request('/api/privacy/delete-account', { method: 'DELETE' }),
 };

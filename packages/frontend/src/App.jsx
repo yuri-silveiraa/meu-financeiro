@@ -26,6 +26,9 @@ import Relatorios from './pages/Relatorios';
 import Metas from './pages/Metas';
 import GastosFixos from './pages/GastosFixos';
 import Configuracoes from './pages/Configuracoes';
+import TermosDeUso from './pages/TermosDeUso';
+import PoliticaPrivacidade from './pages/PoliticaPrivacidade';
+import Footer from './components/Footer';
 
 const { Header, Sider, Content } = Layout;
 
@@ -170,6 +173,7 @@ function AppLayout() {
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <Footer />
         </Content>
       </Layout>
     </Layout>
@@ -217,6 +221,8 @@ function AppWithTheme() {
     >
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/termos" element={<TermosDeUso />} />
+        <Route path="/privacidade" element={<PoliticaPrivacidade />} />
         <Route
           path="/*"
           element={

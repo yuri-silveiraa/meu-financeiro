@@ -55,6 +55,11 @@ async function initDatabase() {
     await pool.query(sql).catch(() => {});
   }
 
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_accepted_at TIMESTAMPTZ;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_ip TEXT;
+  `);
+
   const schemaPath = join(__dirname, 'db', 'schema.sql');
   const schema = readFileSync(schemaPath, 'utf8');
   await pool.query(schema);

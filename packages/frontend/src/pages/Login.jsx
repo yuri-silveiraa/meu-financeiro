@@ -10,6 +10,7 @@ export default function Login() {
   const googleButtonRef = useRef(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -40,8 +41,6 @@ export default function Login() {
           );
         }
 
-        // Tentar One Tap se disponível
-        window.google.accounts.id.prompt();
       }
     };
     document.body.appendChild(script);
@@ -54,7 +53,7 @@ export default function Login() {
   const handleCredentialResponse = async (response) => {
     try {
       setIsLoggingIn(true);
-      await login(response.credential);
+      await login(response.credential, consentAccepted);
       navigate('/');
     } catch (error) {
       console.error('Erro ao fazer login:', error);
@@ -192,6 +191,7 @@ export default function Login() {
               opacity: 0.001,
               zIndex: 10,
               cursor: 'pointer',
+              pointerEvents: consentAccepted ? 'auto' : 'none',
               overflow: 'hidden',
               display: 'flex',
               alignItems: 'center',
@@ -201,6 +201,26 @@ export default function Login() {
             }}
           />
         </div>
+
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          marginTop: 20, fontSize: 12, color: '#94a3b8',
+          textAlign: 'left', cursor: 'pointer',
+          lineHeight: 1.5
+        }}>
+          <input
+            type="checkbox"
+            checked={consentAccepted}
+            onChange={(e) => setConsentAccepted(e.target.checked)}
+            style={{ marginTop: 2, accentColor: '#3b82f6', flexShrink: 0 }}
+          />
+          <span>
+            Li e aceito os{' '}
+            <a href="/termos" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>Termos de Uso</a>
+            {' '}e a{' '}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>Política de Privacidade</a>.
+          </span>
+        </label>
 
         <div style={{
           marginTop: 28,

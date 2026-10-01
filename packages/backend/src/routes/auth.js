@@ -7,7 +7,7 @@ const router = Router();
 
 router.post('/google', async (req, res) => {
   try {
-    const { credential } = req.body;
+    const { credential, consentAccepted } = req.body;
 
     if (!credential) {
       return res.status(400).json({ error: 'Credential não fornecido' });
@@ -24,9 +24,17 @@ router.post('/google', async (req, res) => {
     let result = await pool.query('SELECT * FROM users WHERE google_id = $1', [googleId]);
 
     if (result.rows.length === 0) {
+      if (!consentAccepted) { return res.status(400).json({ error: 'É necessário aceitar os Termos de Uso e Política de Privacidade.' }); }
+      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
       result = await pool.query(
-        'INSERT INTO users (google_id, email, name, avatar_url) VALUES ($1, $2, $3, $4) RETURNING *',
-        [googleId, email, name, picture]
+        'INSERT INTO users (google_id, email, name, avatar_url, consent_accepted_at, consent_ip) VALUES ($1, $2, $3, $4, NOW(), $5) RETURNING *',
+        [googleId, email, name, picture, clientIp]
+      );
+    } else if (consentAccepted && !result.rows[0].consent_accepted_at) {
+      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+      await pool.query(
+        'UPDATE users SET consent_accepted_at = NOW(), consent_ip = $1 WHERE id = $2',
+        [clientIp, result.rows[0].id]
       );
     }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { Modal, message } from 'antd';
 import { formatCurrency } from '../utils/currency';
@@ -9,7 +10,8 @@ import { useAuth } from '../contexts/AuthContext';
 const CORES = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
 
 function Configuracoes() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [categorias, setCategorias] = useState([]);
   const [contas, setContas] = useState([]);
   const [showModalCategoria, setShowModalCategoria] = useState(false);
@@ -183,6 +185,44 @@ function Configuracoes() {
    };
 
 
+   const handleExportData = async () => {
+     try {
+       const data = await api.exportMyData();
+       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+       const url = URL.createObjectURL(blob);
+       const a = document.createElement('a');
+       a.href = url;
+       a.download = `meus-dados-${new Date().toISOString().split('T')[0]}.json`;
+       a.click();
+       URL.revokeObjectURL(url);
+       message.success('Dados exportados com sucesso!');
+     } catch (err) {
+       console.error('Erro ao exportar dados:', err);
+       message.error('Erro ao exportar dados');
+     }
+   };
+
+   const handleDeleteAccount = () => {
+     Modal.confirm({
+       title: '⚠️ Excluir conta permanentemente?',
+       content: 'Esta ação é IRREVERSÍVEL. Todos os seus dados (transações, categorias, contas, cartões, metas e gastos fixos) serão excluídos permanentemente.',
+       okText: 'Sim, excluir tudo',
+       okType: 'danger',
+       cancelText: 'Cancelar',
+       onOk: async () => {
+         try {
+           await api.deleteMyAccount();
+           message.success('Conta excluída com sucesso');
+           logout();
+           navigate('/login');
+         } catch (err) {
+           console.error('Erro ao excluir conta:', err);
+           message.error('Erro ao excluir conta');
+         }
+       }
+     });
+   };
+
    return (
      <div>
        {error && (
@@ -310,6 +350,32 @@ function Configuracoes() {
             <p style={{ marginTop: 10, color: 'var(--text-muted)' }}>
               <strong style={{ color: 'var(--text-primary)' }}>Comandos disponíveis:</strong> saldo, gastei, recebi, pendentes, gastosfixos, categorias, alertas
             </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 24 }}>
+        <h3 style={{ marginBottom: 16 }}>🔒 Privacidade e Dados (LGPD)</h3>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+          <p style={{ marginBottom: 16 }}>
+            Conforme a Lei Geral de Proteção de Dados (LGPD), você tem direito a acessar,
+            exportar e solicitar a exclusão dos seus dados pessoais.
+          </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button className="btn-secondary" onClick={handleExportData}>
+              📥 Exportar meus dados
+            </button>
+            <button className="btn-secondary" style={{ borderColor: '#ef4444', color: '#ef4444' }} onClick={handleDeleteAccount}>
+              🗑️ Excluir minha conta
+            </button>
+          </div>
+          <div style={{ marginTop: 16, display: 'flex', gap: 12 }}>
+            <a href="/termos" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+              📄 Termos de Uso
+            </a>
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+              🔐 Política de Privacidade
+            </a>
           </div>
         </div>
       </div>

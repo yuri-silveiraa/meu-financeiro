@@ -19,8 +19,8 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = async (credential) => {
-    const data = await api.loginWithGoogle(credential);
+  const login = async (credential, consentAccepted = false) => {
+    const data = await api.loginWithGoogle(credential, consentAccepted);
     localStorage.setItem('token', data.token);
     setUser(data.user);
     return data;
