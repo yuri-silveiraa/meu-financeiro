@@ -11,34 +11,11 @@ const pendingLinks = new Map();
 
 // Gerar código de vinculação (JWT auth — usado pelo frontend)
 router.post('/vincular', async (req, res) => {
-  try {
-    const { phoneNumber } = req.body;
-    if (!phoneNumber) {
-      return res.status(400).json({ error: 'phoneNumber obrigatório' });
-    }
-    if (!/^\d{10,15}$/.test(phoneNumber)) {
-      return res.status(400).json({ error: 'Formato de telefone inválido' });
-    }
-
-    const code = String(crypto.randomInt(100000, 999999));
-
-    pendingLinks.set(phoneNumber, {
-      code,
-      userId: req.userId,
-      expiresAt: Date.now() + 15 * 60 * 1000,
-    });
-
-    // Limpar códigos expirados a cada chamada
-    for (const [key, val] of pendingLinks) {
-      if (Date.now() > val.expiresAt) pendingLinks.delete(key);
-    }
-
-    res.json({ code, expiresIn: '15 minutos' });
-  } catch (error) {
-    console.error('Erro ao gerar código:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
+  return res.status(503).json({
+    error: 'A integração com o WhatsApp Bot está em desenvolvimento e estará disponível em breve.'
+  });
 });
+
 
 export default router;
 export { pendingLinks };

@@ -7,7 +7,20 @@ import { validateRequired } from '../utils/validation';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const CORES = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#6366f1'];
+const CORES = [
+  // Verdes e Esmeraldas
+  '#22c55e', '#10b981', '#14b8a6', '#059669',
+  // Azuis e Cianos
+  '#06b6d4', '#0ea5e9', '#3b82f6', '#2563eb',
+  // Índigos e Roxos
+  '#6366f1', '#8b5cf6', '#a855f7', '#7c3aed',
+  // Rosas e Vermelhos
+  '#d946ef', '#ec4899', '#f43f5e', '#ef4444',
+  // Laranjas e Amarelos
+  '#f97316', '#f59e0b', '#eab308', '#84cc16',
+  // Terrosos e Neutros
+  '#78716c', '#64748b', '#475569', '#1e293b'
+];
 
 function Configuracoes() {
   const { user, logout } = useAuth();
@@ -319,36 +332,68 @@ function Configuracoes() {
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h3 style={{ marginBottom: 16 }}>WhatsApp Bot</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ margin: 0 }}>WhatsApp Bot</h3>
+          <span style={{
+            background: 'rgba(245, 158, 11, 0.15)',
+            color: '#f59e0b',
+            padding: '4px 10px',
+            borderRadius: 12,
+            fontSize: 12,
+            fontWeight: 600,
+            border: '1px solid rgba(245, 158, 11, 0.3)'
+          }}>
+            🚧 Em desenvolvimento
+          </span>
+        </div>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-          <p style={{ marginBottom: 12 }}>Vincule seu WhatsApp para registrar despesas e receber alertas pelo chat.</p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button className="btn-primary" onClick={async () => {
-              const phone = prompt('Digite seu número do WhatsApp (com código do país, ex: 5511999999999):');
-              if (phone) {
-                try {
-                  const data = await api.gerarCodigoVinculacao(phone);
-                  if (data.code) {
-                    alert(`Código gerado: ${data.code}\n\nEnvie este código para o bot no WhatsApp.\nExpira em ${data.expiresIn}.`);
-                  } else {
-                    alert('Erro ao gerar código. Tente novamente.');
-                  }
-                } catch (err) {
-                  alert('Erro ao conectar com o servidor.');
-                }
-              }
-            }}>Gerar Código de Vinculação</button>
+          <div style={{
+            padding: '12px 16px',
+            background: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: 10,
+            marginBottom: 16,
+            color: 'var(--text-primary)'
+          }}>
+            <strong style={{ display: 'block', marginBottom: 4, color: '#60a5fa' }}>ℹ️ Recurso em preparação</strong>
+            A integração com o bot do WhatsApp ainda está em fase de desenvolvimento e configuração.
+            Em breve você poderá vincular seu número para registrar despesas e receber alertas diretamente pelo WhatsApp!
           </div>
+
+          <p style={{ marginBottom: 12 }}>
+            Quando a funcionalidade estiver disponível, você poderá vincular seu WhatsApp para gerenciar suas contas de forma rápida pelo chat.
+          </p>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled
+              onClick={() => {
+                message.info('A integração com o WhatsApp Bot ainda está em desenvolvimento e estará disponível em breve!');
+              }}
+              style={{
+                opacity: 0.6,
+                cursor: 'not-allowed',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8
+              }}
+              title="Recurso em desenvolvimento"
+            >
+              <span>Gerar Código de Vinculação (Em Breve)</span>
+            </button>
+          </div>
+
           <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: 10 }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Como vincular:</strong>
+            <strong style={{ color: 'var(--text-primary)' }}>Como funcionará após o lançamento:</strong>
             <ol style={{ paddingLeft: 20, marginTop: 8 }}>
-              <li>Clique em "Gerar Código de Vinculação" acima</li>
-              <li>Anote o código de 6 dígitos</li>
-              <li>Abra o WhatsApp e envie o código para o bot</li>
-              <li>Pronto! Agora você pode usar comandos no WhatsApp</li>
+              <li>Você gerará um código seguro de 6 dígitos aqui nas configurações</li>
+              <li>Enviará esse código para o número oficial do bot no WhatsApp</li>
+              <li>Sua conta será vinculada instantaneamente</li>
             </ol>
             <p style={{ marginTop: 10, color: 'var(--text-muted)' }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Comandos disponíveis:</strong> saldo, gastei, recebi, pendentes, gastosfixos, categorias, alertas
+              <strong style={{ color: 'var(--text-primary)' }}>Comandos que estarão disponíveis:</strong> saldo, gastei, recebi, pendentes, gastosfixos, categorias, alertas
             </p>
           </div>
         </div>
@@ -400,23 +445,94 @@ function Configuracoes() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Cor</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {CORES.map((cor) => (
-                <button
-                  key={cor}
-                  type="button"
-                  onClick={() => setFormCategoria({ ...formCategoria, cor })}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label className="form-label" style={{ margin: 0 }}>Cor da Categoria</label>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span
                   style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    background: cor,
-                    border: formCategoria.cor === cor ? '3px solid #1f2937' : 'none',
-                    cursor: 'pointer'
+                    display: 'inline-block',
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: formCategoria.cor || '#3b82f6',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
                   }}
                 />
-              ))}
+                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                  {formCategoria.cor?.toUpperCase() || '#3B82F6'}
+                </span>
+              </div>
+            </div>
+
+            {/* Paleta rápida com 24 cores */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(8, 1fr)',
+              gap: 8,
+              marginBottom: 12
+            }}>
+              {CORES.map((cor) => {
+                const isSelected = formCategoria.cor?.toLowerCase() === cor.toLowerCase();
+                return (
+                  <button
+                    key={cor}
+                    type="button"
+                    title={cor}
+                    onClick={() => setFormCategoria({ ...formCategoria, cor })}
+                    style={{
+                      height: 32,
+                      borderRadius: 8,
+                      background: cor,
+                      border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: isSelected ? '0 0 0 2px #3b82f6, 0 2px 6px rgba(0,0,0,0.4)' : 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      fontSize: 14,
+                      fontWeight: 'bold',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      transform: isSelected ? 'scale(1.08)' : 'scale(1)'
+                    }}
+                  >
+                    {isSelected && '✓'}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Opção de cor personalizada */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 12px',
+              borderRadius: 8,
+              background: 'var(--bg-card-subtle, rgba(255, 255, 255, 0.04))',
+              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))'
+            }}>
+              <input
+                type="color"
+                value={formCategoria.cor && formCategoria.cor.startsWith('#') && formCategoria.cor.length === 7 ? formCategoria.cor : '#3b82f6'}
+                onChange={(e) => setFormCategoria({ ...formCategoria, cor: e.target.value })}
+                style={{
+                  width: 34,
+                  height: 34,
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  background: 'transparent',
+                  padding: 0
+                }}
+                id="custom-color-input"
+              />
+              <label htmlFor="custom-color-input" style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)', flex: 1, userSelect: 'none' }}>
+                <span style={{ fontWeight: 500, display: 'block' }}>Escolher cor personalizada</span>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                  Clique no quadrado colorido para abrir o seletor completo
+                </span>
+              </label>
             </div>
           </div>
           <div className="modal-actions">

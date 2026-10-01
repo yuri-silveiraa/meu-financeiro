@@ -18,6 +18,7 @@ function makeToken(userId) {
 }
 
 beforeAll(async () => {
+  process.env.JWT_SECRET = JWT_SECRET;
   await initTestDatabase();
 });
 
