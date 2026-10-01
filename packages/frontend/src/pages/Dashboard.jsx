@@ -56,7 +56,16 @@ function Dashboard() {
     try {
       setError(null);
       const data = await api.getEstatisticas(mes, ano);
-      setEstatisticas(data);
+      if (data && typeof data === 'object') {
+        setEstatisticas((prev) => ({
+          ...prev,
+          ...data,
+          porCategoria: Array.isArray(data.porCategoria) ? data.porCategoria : [],
+          porPagamento: Array.isArray(data.porPagamento) ? data.porPagamento : [],
+          projecaoFaturas: Array.isArray(data.projecaoFaturas) ? data.projecaoFaturas : [],
+          cartoesInfo: Array.isArray(data.cartoesInfo) ? data.cartoesInfo : [],
+        }));
+      }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
       setError('Erro ao carregar dados do dashboard');
@@ -66,9 +75,10 @@ function Dashboard() {
   const loadPrevisoes = async () => {
     try {
       const data = await api.getPrevisoes();
-      setPrevisoes(data);
+      setPrevisoes(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Erro ao carregar previsões:', err);
+      setPrevisoes([]);
     }
   };
 
@@ -89,6 +99,12 @@ function Dashboard() {
       setMes((m) => m + 1);
     }
   };
+
+  const porCategoria = Array.isArray(estatisticas?.porCategoria) ? estatisticas.porCategoria : [];
+  const porPagamento = Array.isArray(estatisticas?.porPagamento) ? estatisticas.porPagamento : [];
+  const projecaoFaturas = Array.isArray(estatisticas?.projecaoFaturas) ? estatisticas.projecaoFaturas : [];
+  const cartoesInfo = Array.isArray(estatisticas?.cartoesInfo) ? estatisticas.cartoesInfo : [];
+  const previsoesList = Array.isArray(previsoes) ? previsoes : [];
 
   return (
     <div>
@@ -236,8 +252,8 @@ function Dashboard() {
               <YAxis tickFormatter={(val) => formatCurrency(val)} stroke={axisStroke} />
               <Tooltip formatter={(value, name) => [formatCurrency(value), name]} contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
-              {estatisticas.cartoesInfo?.length > 0 ? (
-                estatisticas.cartoesInfo.map((cartao) => (
+              {cartoesInfo.length > 0 ? (
+                cartoesInfo.map((cartao) => (
                   <Bar
                     key={cartao.id}
                     dataKey={cartao.nome}
@@ -264,11 +280,11 @@ function Dashboard() {
       <div className="dashboard-charts" style={{ marginTop: 20 }}>
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Gastos por Categoria</h3>
-          {estatisticas.porCategoria.length > 0 ? (
+          {porCategoria.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={estatisticas.porCategoria}
+                  data={porCategoria}
                   dataKey="total"
                   nameKey="nome"
                   cx="50%"
@@ -276,7 +292,7 @@ function Dashboard() {
                   outerRadius={80}
                   label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
                 >
-                  {estatisticas.porCategoria.map((entry, index) => (
+                  {porCategoria.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.cor || COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -294,9 +310,9 @@ function Dashboard() {
 
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Gastos por Tipo de Pagamento</h3>
-          {estatisticas.porPagamento.length > 0 ? (
+          {porPagamento.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={estatisticas.porPagamento.map(p => ({ ...p, tipo: p.tipo_pagamento || 'Outros' }))}>
+              <BarChart data={porPagamento.map(p => ({ ...p, tipo: p.tipo_pagamento || 'Outros' }))}>
                 <XAxis dataKey="tipo" stroke={axisStroke} />
                 <YAxis stroke={axisStroke} />
                 <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
@@ -315,15 +331,15 @@ function Dashboard() {
 
       <div className="card" style={{ marginTop: 20 }}>
         <h3 style={{ marginBottom: 16 }}>Previsão Mensal</h3>
-        {previsoes.length > 0 ? (
+        {previsoesList.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={previsoes} layout="vertical">
+            <BarChart data={previsoesList} layout="vertical">
               <XAxis type="number" stroke={axisStroke} />
               <YAxis type="category" dataKey="categoria" width={100} stroke={axisStroke} />
               <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
               <Bar dataKey="media_mensal" name="Média Mensal" radius={[0, 4, 4, 0]}>
-                {previsoes.map((entry, index) => (
+                {previsoesList.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.tipo === 'receita' ? '#22c55e' : '#ef4444'}

@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
          WHERE gf_inner.user_id = $1 AND gf_inner.ativo = TRUE
        ) gf
        WHERE gf.rn = 1
-       ORDER BY gf.tipo, gf.media_mensal DESC`,
+       ORDER BY gf.tipo, gf.valor DESC`,
       [req.userId]
     );
     res.json(result.rows.map(r => ({

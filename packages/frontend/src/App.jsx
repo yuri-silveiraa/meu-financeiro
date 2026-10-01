@@ -29,6 +29,7 @@ import Configuracoes from './pages/Configuracoes';
 import TermosDeUso from './pages/TermosDeUso';
 import PoliticaPrivacidade from './pages/PoliticaPrivacidade';
 import Footer from './components/Footer';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const { Header, Sider, Content } = Layout;
 
@@ -163,17 +164,19 @@ function AppLayout() {
           </div>
         </Header>
         <Content className="app-content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/transacoes" element={<Transacoes />} />
-            <Route path="/cartoes" element={<Cartoes />} />
-            <Route path="/gastosfixos" element={<GastosFixos />} />
-            <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/metas" element={<Metas />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <Footer />
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/transacoes" element={<Transacoes />} />
+              <Route path="/cartoes" element={<Cartoes />} />
+              <Route path="/gastosfixos" element={<GastosFixos />} />
+              <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/metas" element={<Metas />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <Footer />
+          </ErrorBoundary>
         </Content>
       </Layout>
     </Layout>
