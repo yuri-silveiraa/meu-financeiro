@@ -1,4 +1,5 @@
 import React from 'react';
+import { DeleteOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
 
 const formatDate = (value) => {
@@ -15,7 +16,7 @@ const formatDate = (value) => {
  * Mirrors the UI of TransactionCard but adapts the fields to the
  * fixed‑expense model returned by the backend.
  */
-const GastoFixoCard = ({ gasto, onEdit }) => {
+const GastoFixoCard = ({ gasto, onEdit, onDelete }) => {
   const dataFormatada = formatDate(gasto.data);
   const accentColor = gasto.categoria_cor || (gasto.tipo === 'receita' ? '#22c55e' : '#ef4444');
 
@@ -64,6 +65,20 @@ const GastoFixoCard = ({ gasto, onEdit }) => {
       </div>
       <div className="tx-card-right">
         <span className={`tx-valor ${gasto.tipo}`}> {gasto.tipo === 'receita' ? '+' : '-'} {formatCurrency(gasto.valor)} </span>
+        {onDelete && (
+          <button
+            type="button"
+            className="icon-button danger"
+            title="Excluir item fixo"
+            aria-label="Excluir item fixo"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(gasto.id);
+            }}
+          >
+            <DeleteOutlined />
+          </button>
+        )}
       </div>
     </div>
   );

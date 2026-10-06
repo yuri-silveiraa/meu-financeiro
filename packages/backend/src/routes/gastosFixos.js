@@ -312,21 +312,35 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Deletar gasto fixo (soft delete)
+// Deletar gasto fixo (desativa e remove transações não pagas vinculadas)
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { id } = req.params;
-    const result = await pool.query(
+    const result = await client.query(
       'UPDATE gastos_fixos SET ativo = FALSE WHERE id = $1 AND user_id = $2',
       [id, req.userId]
     );
     if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Gasto fixo não encontrado' });
     }
+
+    // Deletar transações não pagas geradas por este gasto fixo
+    await client.query(
+      'DELETE FROM transacoes WHERE gasto_fixo_id = $1 AND user_id = $2 AND pago = FALSE',
+      [id, req.userId]
+    );
+
+    await client.query('COMMIT');
     res.json({ success: true });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Erro ao deletar gasto fixo:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
+  } finally {
+    client.release();
   }
 });
 

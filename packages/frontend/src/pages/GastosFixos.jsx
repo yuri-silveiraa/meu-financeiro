@@ -88,7 +88,7 @@ function GastosFixos() {
   const handleDelete = useCallback(async (id) => {
     Modal.confirm({
       title: 'Excluir item fixo',
-      content: 'Tem certeza? As transações já criadas permanecerão.',
+      content: 'Tem certeza que deseja excluir este item fixo? As transações pendentes geradas por ele também serão removidas.',
       okText: 'Excluir',
       okType: 'danger',
       cancelText: 'Cancelar',
@@ -381,6 +381,7 @@ function GastosFixos() {
                 key={gasto.id}
                 gasto={gasto}
                 onEdit={handleEdit}
+                onDelete={handleDelete}
               />
             ))}
             {gastosFiltrados.length === 0 && (
@@ -571,9 +572,30 @@ function GastosFixos() {
               <span className="form-hint">Vazio = recorrente para sempre</span>
             </div>
           </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}>Cancelar</button>
-            <button type="submit" className="btn-primary">Salvar</button>
+          <div
+            className="modal-actions"
+            style={{ justifyContent: editando ? 'space-between' : 'flex-end' }}
+          >
+            {editando && (
+              <button
+                type="button"
+                className="btn-ghost danger"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={() => {
+                  const idToDelete = editando.id;
+                  setShowModal(false);
+                  setEditando(null);
+                  resetForm();
+                  handleDelete(idToDelete);
+                }}
+              >
+                <DeleteOutlined /> Excluir {editando.tipo === 'receita' ? 'Receita Fixa' : 'Gasto Fixo'}
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}>Cancelar</button>
+              <button type="submit" className="btn-primary">Salvar</button>
+            </div>
           </div>
         </form>
       </Modal>
