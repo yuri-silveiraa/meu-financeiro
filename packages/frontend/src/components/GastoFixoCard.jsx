@@ -35,8 +35,8 @@ const GastoFixoCard = ({ gasto, onEdit }) => {
       <div className="tx-card-left">
         <span className="tx-accent-bar" style={{ background: accentColor }} />
         <div className="tx-info">
-          <span className="tx-desc" title={gasto.descricao || 'Sem descrição'}>
-            {gasto.descricao || 'Sem descrição'}
+          <span className="tx-desc" title={gasto.nome || 'Sem descrição'}>
+            {gasto.nome || 'Sem descrição'}
           </span>
           <div className="tx-subinfo">
             {gasto.categoria_nome && (
