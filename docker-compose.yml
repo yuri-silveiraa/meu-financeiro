@@ -24,6 +24,7 @@ services:
       - DATABASE_URL=postgresql://meu_financeiro:${POSTGRES_PASSWORD}@db:5432/meu_financeiro
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
       - JWT_SECRET=${JWT_SECRET}
       - BOT_API_KEY=${BOT_API_KEY}
       - FRONTEND_URL=https://${DOMAIN_NAME}

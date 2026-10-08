@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleOutlined, LoadingOutlined } from '@ant-design/icons';
-
+import { Alert, message } from 'antd';
 
 export default function Login() {
-  const { user, login } = useAuth();
+  const { user, loginWithToken } = useAuth();
   const navigate = useNavigate();
-  const googleButtonRef = useRef(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -19,46 +20,35 @@ export default function Login() {
   }, [user, navigate]);
 
   useEffect(() => {
-    // Carregar o script do Google Identity Services
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse,
-        });
+    const token = searchParams.get('token');
+    const error = searchParams.get('error');
 
-        if (googleButtonRef.current) {
-          window.google.accounts.id.renderButton(
-            googleButtonRef.current,
-            {
-              theme: 'outline',
-              size: 'large',
-              width: 350,
-            }
-          );
-        }
-
-      }
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
-  const handleCredentialResponse = async (response) => {
-    try {
+    if (token) {
       setIsLoggingIn(true);
-      await login(response.credential, consentAccepted);
-      navigate('/');
-    } catch (error) {
-      console.error('Erro ao fazer login:', error);
-      setIsLoggingIn(false);
+      loginWithToken(token)
+        .then(() => {
+          navigate('/', { replace: true });
+        })
+        .catch((err) => {
+          console.error('Erro ao autenticar com token:', err);
+          setErrorMessage('Falha ao concluir login. Tente novamente.');
+          setIsLoggingIn(false);
+        });
+    } else if (error) {
+      setErrorMessage(decodeURIComponent(error));
+      setSearchParams({}, { replace: true });
     }
+  }, [searchParams, loginWithToken, navigate, setSearchParams]);
+
+  const handleGoogleLogin = () => {
+    if (!consentAccepted) {
+      message.warning('Por favor, aceite os Termos de Uso e Política de Privacidade antes de entrar.');
+      return;
+    }
+
+    setIsLoggingIn(true);
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    window.location.href = `${apiBase}/auth/google?consentAccepted=true`;
   };
 
   return (
@@ -129,25 +119,37 @@ export default function Login() {
           color: '#94a3b8',
           fontSize: 14,
           lineHeight: 1.5,
-          marginBottom: 32
+          marginBottom: 24
         }}>
           Gerencie suas finanças, faturas de cartão e metas de forma moderna e inteligente.
         </p>
+
+        {errorMessage && (
+          <div style={{ marginBottom: 20, textAlign: 'left' }}>
+            <Alert
+              message={errorMessage}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setErrorMessage(null)}
+            />
+          </div>
+        )}
 
         <div
           style={{
             position: 'relative',
             width: '100%',
-            height: 48,
-            marginTop: 16,
+            marginTop: 8,
           }}
           onMouseEnter={() => !isLoggingIn && setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* Botão azul estilizado visível */}
+          {/* Botão de login oficial com redirecionamento direto */}
           <button
             type="button"
             disabled={isLoggingIn}
+            onClick={handleGoogleLogin}
             style={{
               width: '100%',
               height: 48,
@@ -168,7 +170,6 @@ export default function Login() {
               transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
               transition: 'all 0.2s ease',
               opacity: isLoggingIn ? 0.75 : 1,
-              pointerEvents: 'none',
             }}
           >
             {isLoggingIn ? (
@@ -176,30 +177,8 @@ export default function Login() {
             ) : (
               <GoogleOutlined style={{ fontSize: 18 }} />
             )}
-            {isLoggingIn ? 'Entrando...' : 'Entrar com Google'}
+            {isLoggingIn ? 'Redirecionando...' : 'Entrar com Google'}
           </button>
-
-          {/* Overlay invisível do botão oficial do Google (aciona popup real no clique) */}
-          <div
-            ref={googleButtonRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              opacity: 0.001,
-              zIndex: 10,
-              cursor: 'pointer',
-              pointerEvents: consentAccepted ? 'auto' : 'none',
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transform: 'scale(1.05)',
-              transformOrigin: 'center center',
-            }}
-          />
         </div>
 
         <label style={{

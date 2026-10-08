@@ -20,6 +20,7 @@ services:
       - DATABASE_URL=postgresql://meu_financeiro:dev_password@db:5432/meu_financeiro
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-SEU_CLIENT_ID_AQUI}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-SEU_CLIENT_SECRET_AQUI}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
       - JWT_SECRET=${JWT_SECRET:-dev-secret-local-mudar-em-producao}
       - FRONTEND_URL=http://localhost:8080
       - BOT_API_KEY=dev-bot-secret-key

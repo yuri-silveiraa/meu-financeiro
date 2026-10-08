@@ -5,6 +5,157 @@ import pool from '../config/database.js';
 
 const router = Router();
 
+export async function findOrCreateGoogleUser({ googleId, email, name, picture, consentAccepted, clientIp }) {
+  let result = await pool.query('SELECT * FROM users WHERE google_id = $1', [googleId]);
+
+  if (result.rows.length === 0) {
+    if (!consentAccepted) {
+      const err = new Error('É necessário aceitar os Termos de Uso e Política de Privacidade.');
+      err.statusCode = 400;
+      throw err;
+    }
+    result = await pool.query(
+      'INSERT INTO users (google_id, email, name, avatar_url, consent_accepted_at, consent_ip) VALUES ($1, $2, $3, $4, NOW(), $5) RETURNING *',
+      [googleId, email, name, picture, clientIp]
+    );
+  } else if (consentAccepted && !result.rows[0].consent_accepted_at) {
+    await pool.query(
+      'UPDATE users SET consent_accepted_at = NOW(), consent_ip = $1 WHERE id = $2',
+      [clientIp, result.rows[0].id]
+    );
+  }
+
+  const user = result.rows[0];
+
+  // Categorias padrão para novo usuário (em transaction)
+  const catCheck = await pool.query('SELECT COUNT(*) FROM categorias WHERE user_id = $1', [user.id]);
+  if (parseInt(catCheck.rows[0].count) === 0) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const defaultCategories = [
+        { nome: 'Alimentacao', cor: '#22c55e', icone: 'utensils' },
+        { nome: 'Transporte', cor: '#3b82f6', icone: 'car' },
+        { nome: 'Moradia', cor: '#8b5cf6', icone: 'home' },
+        { nome: 'Lazer', cor: '#f59e0b', icone: 'gamepad-2' },
+        { nome: 'Saude', cor: '#ef4444', icone: 'heart-pulse' },
+        { nome: 'Educacao', cor: '#06b6d4', icone: 'graduation-cap' },
+        { nome: 'Outros', cor: '#6b7280', icone: 'folder' },
+      ];
+
+      for (const cat of defaultCategories) {
+        await client.query(
+          'INSERT INTO categorias (user_id, nome, cor, icone) VALUES ($1, $2, $3, $4)',
+          [user.id, cat.nome, cat.cor, cat.icone]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
+  return user;
+}
+
+export function getRedirectUri(req) {
+  if (process.env.GOOGLE_REDIRECT_URI) {
+    return process.env.GOOGLE_REDIRECT_URI;
+  }
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  return `${protocol}://${host}/auth/google/callback`;
+}
+
+router.get('/google', (req, res) => {
+  try {
+    const consentAccepted = req.query.consentAccepted === 'true';
+    const redirectUri = getRedirectUri(req);
+
+    const stateData = {
+      consentAccepted,
+      timestamp: Date.now(),
+    };
+    const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
+
+    const authUrl = googleClient.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['openid', 'email', 'profile'],
+      prompt: 'select_account',
+      redirect_uri: redirectUri,
+      state,
+    });
+
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error('Erro ao gerar URL do Google OAuth:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Falha ao iniciar autenticação com o Google')}`);
+  }
+});
+
+router.get('/google/callback', async (req, res) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      console.warn('Google OAuth retornou erro:', error);
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error)}`);
+    }
+
+    if (!code) {
+      return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent('Código de autorização não fornecido')}`);
+    }
+
+    let consentAccepted = false;
+    if (state) {
+      try {
+        const parsedState = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+        consentAccepted = Boolean(parsedState.consentAccepted);
+      } catch (e) {
+        console.warn('Não foi possível decodificar state:', e.message);
+      }
+    }
+
+    const redirectUri = getRedirectUri(req);
+    const { tokens } = await googleClient.getToken({
+      code,
+      redirect_uri: redirectUri,
+    });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+
+    const user = await findOrCreateGoogleUser({
+      googleId,
+      email,
+      name,
+      picture,
+      consentAccepted,
+      clientIp,
+    });
+
+    const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '30d' });
+
+    res.redirect(`${frontendUrl}/login?token=${token}`);
+  } catch (err) {
+    console.error('Erro no callback do Google OAuth:', err);
+    const message = err.statusCode === 400 ? err.message : 'Erro na autenticação com o Google';
+    res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(message)}`);
+  }
+});
+
 router.post('/google', async (req, res) => {
   try {
     const { credential, consentAccepted } = req.body;
@@ -20,56 +171,16 @@ router.post('/google', async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
 
-    let result = await pool.query('SELECT * FROM users WHERE google_id = $1', [googleId]);
-
-    if (result.rows.length === 0) {
-      if (!consentAccepted) { return res.status(400).json({ error: 'É necessário aceitar os Termos de Uso e Política de Privacidade.' }); }
-      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
-      result = await pool.query(
-        'INSERT INTO users (google_id, email, name, avatar_url, consent_accepted_at, consent_ip) VALUES ($1, $2, $3, $4, NOW(), $5) RETURNING *',
-        [googleId, email, name, picture, clientIp]
-      );
-    } else if (consentAccepted && !result.rows[0].consent_accepted_at) {
-      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
-      await pool.query(
-        'UPDATE users SET consent_accepted_at = NOW(), consent_ip = $1 WHERE id = $2',
-        [clientIp, result.rows[0].id]
-      );
-    }
-
-    const user = result.rows[0];
-
-    // Categorias padrão para novo usuário (em transaction)
-    const catCheck = await pool.query('SELECT COUNT(*) FROM categorias WHERE user_id = $1', [user.id]);
-    if (parseInt(catCheck.rows[0].count) === 0) {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        const defaultCategories = [
-          { nome: 'Alimentacao', cor: '#22c55e', icone: 'utensils' },
-          { nome: 'Transporte', cor: '#3b82f6', icone: 'car' },
-          { nome: 'Moradia', cor: '#8b5cf6', icone: 'home' },
-          { nome: 'Lazer', cor: '#f59e0b', icone: 'gamepad-2' },
-          { nome: 'Saude', cor: '#ef4444', icone: 'heart-pulse' },
-          { nome: 'Educacao', cor: '#06b6d4', icone: 'graduation-cap' },
-          { nome: 'Outros', cor: '#6b7280', icone: 'folder' },
-        ];
-
-        for (const cat of defaultCategories) {
-          await client.query(
-            'INSERT INTO categorias (user_id, nome, cor, icone) VALUES ($1, $2, $3, $4)',
-            [user.id, cat.nome, cat.cor, cat.icone]
-          );
-        }
-        await client.query('COMMIT');
-      } catch (e) {
-        await client.query('ROLLBACK');
-        throw e;
-      } finally {
-        client.release();
-      }
-    }
+    const user = await findOrCreateGoogleUser({
+      googleId,
+      email,
+      name,
+      picture,
+      consentAccepted: Boolean(consentAccepted),
+      clientIp,
+    });
 
     const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '30d' });
 
@@ -84,7 +195,8 @@ router.post('/google', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro na autenticação Google:', error);
-    res.status(500).json({ error: 'Erro na autenticação' });
+    const statusCode = error.statusCode || (error.message?.includes('aceitar os Termos') ? 400 : 500);
+    res.status(statusCode).json({ error: error.message || 'Erro na autenticação' });
   }
 });
 

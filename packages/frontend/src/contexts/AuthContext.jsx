@@ -26,13 +26,21 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const loginWithToken = async (token) => {
+    localStorage.setItem('token', token);
+    const data = await api.getMe();
+    setUser(data.user);
+    return data;
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithToken, logout }}>
+
       {children}
     </AuthContext.Provider>
   );
