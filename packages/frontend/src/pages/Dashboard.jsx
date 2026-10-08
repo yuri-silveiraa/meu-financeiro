@@ -246,12 +246,20 @@ function Dashboard() {
         </div>
 
         {estatisticas.projecaoFaturas?.some((p) => p.total > 0) ? (
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={estatisticas.projecaoFaturas}>
-              <XAxis dataKey="label" stroke={axisStroke} />
-              <YAxis tickFormatter={(val) => formatCurrency(val)} stroke={axisStroke} />
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart
+              data={estatisticas.projecaoFaturas}
+              margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+            >
+              <XAxis dataKey="label" stroke={axisStroke} tick={{ fontSize: 11 }} />
+              <YAxis
+                tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                stroke={axisStroke}
+                width={36}
+                tick={{ fontSize: 11 }}
+              />
               <Tooltip formatter={(value, name) => [formatCurrency(value), name]} contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
+              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
               {cartoesInfo.length > 0 ? (
                 cartoesInfo.map((cartao) => (
                   <Bar
@@ -281,24 +289,67 @@ function Dashboard() {
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Gastos por Categoria</h3>
           {porCategoria.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={porCategoria}
-                  dataKey="total"
-                  nameKey="nome"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {porCategoria.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.cor || COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div>
+              <ResponsiveContainer width="100%" height={210}>
+                <PieChart>
+                  <Pie
+                    data={porCategoria}
+                    dataKey="total"
+                    nameKey="nome"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={3}
+                  >
+                    {porCategoria.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.cor || COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="category-legend-list" style={{ marginTop: 12 }}>
+                {porCategoria.map((entry, index) => {
+                  const totalCat = porCategoria.reduce((sum, c) => sum + parseFloat(c.total || 0), 0);
+                  const percent = totalCat > 0 ? Math.round((entry.total / totalCat) * 100) : 0;
+                  return (
+                    <div
+                      key={entry.nome || index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 0',
+                        fontSize: 13,
+                        borderBottom: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: entry.cor || COLORS[index % COLORS.length],
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {entry.nome}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{percent}%</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {formatCurrency(entry.total)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ) : (
             <EmptyState
               icon="📉"
@@ -311,10 +362,18 @@ function Dashboard() {
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Gastos por Tipo de Pagamento</h3>
           {porPagamento.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={porPagamento.map(p => ({ ...p, tipo: p.tipo_pagamento || 'Outros' }))}>
-                <XAxis dataKey="tipo" stroke={axisStroke} />
-                <YAxis stroke={axisStroke} />
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart
+                data={porPagamento.map(p => ({ ...p, tipo: p.tipo_pagamento || 'Outros' }))}
+                margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+              >
+                <XAxis dataKey="tipo" stroke={axisStroke} tick={{ fontSize: 11 }} />
+                <YAxis
+                  stroke={axisStroke}
+                  width={36}
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                />
                 <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
                 <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -332,12 +391,27 @@ function Dashboard() {
       <div className="card" style={{ marginTop: 20 }}>
         <h3 style={{ marginBottom: 16 }}>Previsão Mensal</h3>
         {previsoesList.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={previsoesList} layout="vertical">
-              <XAxis type="number" stroke={axisStroke} />
-              <YAxis type="category" dataKey="categoria" width={100} stroke={axisStroke} />
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart
+              data={previsoesList}
+              layout="vertical"
+              margin={{ top: 8, right: 12, left: -10, bottom: 0 }}
+            >
+              <XAxis
+                type="number"
+                stroke={axisStroke}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+              />
+              <YAxis
+                type="category"
+                dataKey="categoria"
+                width={85}
+                stroke={axisStroke}
+                tick={{ fontSize: 11 }}
+              />
               <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
+              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
               <Bar dataKey="media_mensal" name="Média Mensal" radius={[0, 4, 4, 0]}>
                 {previsoesList.map((entry, index) => (
                   <Cell

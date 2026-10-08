@@ -14,8 +14,8 @@ function CartoesContent() {
   const { cartoes, loading, handleOpenModalCartao } = useCartoes();
 
   return (
-    <div style={{ padding: '16px 24px', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div style={{ padding: '12px 0', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>
             <CreditCardOutlined style={{ marginRight: 8, color: '#6366f1' }} />

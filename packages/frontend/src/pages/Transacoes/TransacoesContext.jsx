@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import Papa from 'papaparse';
 import { Modal, message } from 'antd';
 import { api } from '../../services/api';
@@ -20,6 +21,16 @@ export function TransacoesProvider({ children }) {
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openCreateModal) {
+      setForm(initialForm());
+      setEditando(null);
+      setShowModal(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const loadData = useCallback(async () => {
     setLoading(true);

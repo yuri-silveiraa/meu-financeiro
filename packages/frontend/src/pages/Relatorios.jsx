@@ -120,12 +120,17 @@ function Relatorios() {
 
       <div className="card">
         <h3 style={{ marginBottom: 16 }}>Receitas vs Despesas por Mês</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={dadosMensais()}>
-            <XAxis dataKey="nome" stroke={axisStroke} />
-            <YAxis stroke={axisStroke} />
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={dadosMensais()} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+            <XAxis dataKey="nome" stroke={axisStroke} tick={{ fontSize: 11 }} />
+            <YAxis
+              stroke={axisStroke}
+              width={36}
+              tick={{ fontSize: 11 }}
+              tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+            />
             <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
-            <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
+            <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
             <Bar dataKey="receitas" name="Receitas" fill="#22c55e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
           </BarChart>
@@ -134,10 +139,15 @@ function Relatorios() {
 
       <div className="card">
         <h3 style={{ marginBottom: 16 }}>Evolução do Saldo Mensal</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={dadosMensais()}>
-            <XAxis dataKey="nome" stroke={axisStroke} />
-            <YAxis stroke={axisStroke} />
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={dadosMensais()} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+            <XAxis dataKey="nome" stroke={axisStroke} tick={{ fontSize: 11 }} />
+            <YAxis
+              stroke={axisStroke}
+              width={36}
+              tick={{ fontSize: 11 }}
+              tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+            />
             <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
             <Line type="monotone" dataKey="saldo" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4 }} />
           </LineChart>
@@ -212,12 +222,17 @@ function Relatorios() {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={cartoesAnual.dadosMensais}>
-              <XAxis dataKey="nome" stroke={axisStroke} />
-              <YAxis stroke={axisStroke} />
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={cartoesAnual.dadosMensais} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <XAxis dataKey="nome" stroke={axisStroke} tick={{ fontSize: 11 }} />
+              <YAxis
+                stroke={axisStroke}
+                width={36}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+              />
               <Tooltip formatter={(value) => formatCurrency(value)} contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b' }} />
+              <Legend wrapperStyle={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }} />
               {modoGraficoCartao === 'status' ? (
                 <>
                   <Bar dataKey="totalPago" name="Faturas Pagas" fill="#22c55e" stackId="status" radius={[2, 2, 0, 0]} />

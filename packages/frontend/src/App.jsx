@@ -30,6 +30,7 @@ import TermosDeUso from './pages/TermosDeUso';
 import PoliticaPrivacidade from './pages/PoliticaPrivacidade';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
+import BottomNav from './components/BottomNav';
 
 const { Header, Sider, Content } = Layout;
 
@@ -163,7 +164,7 @@ function AppLayout() {
             </Dropdown>
           </div>
         </Header>
-        <Content className="app-content">
+        <Content className={`app-content ${isMobile ? 'has-bottom-nav' : ''}`}>
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Dashboard />} />
@@ -178,6 +179,12 @@ function AppLayout() {
             <Footer />
           </ErrorBoundary>
         </Content>
+        {isMobile && (
+          <BottomNav
+            onOpenMenu={() => setDrawerOpen(true)}
+            onNewTransaction={() => navigate('/transacoes', { state: { openCreateModal: true } })}
+          />
+        )}
       </Layout>
     </Layout>
   );
