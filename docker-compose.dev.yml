@@ -31,20 +31,6 @@ services:
     networks:
       - dev-network
 
-  bot:
-    build: ./packages/bot
-    environment:
-      - BACKEND_URL=http://backend:3001
-      - BOT_API_KEY=dev-bot-secret-key
-      - BOT_PORT=3002
-      - SESSION_DIR=/app/whatsapp-session
-    volumes:
-      - whatsapp-session:/app/whatsapp-session
-    depends_on:
-      - backend
-    networks:
-      - dev-network
-
   db:
     image: postgres:16-alpine
     ports:
@@ -69,4 +55,3 @@ networks:
 
 volumes:
   pgdata-dev:
-  whatsapp-session:

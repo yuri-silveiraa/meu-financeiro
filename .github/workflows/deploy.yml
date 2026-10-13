@@ -72,8 +72,6 @@ jobs:
           docker compose logs --tail=100 backend || true
           echo "==================== LOGS BANCO DE DADOS ===================="
           docker compose logs --tail=100 db || true
-          echo "==================== LOGS BOT ===================="
-          docker compose logs --tail=100 bot || true
           echo "==================== STATUS DOS CONTAINERS ===================="
           docker compose ps -a || true
 
