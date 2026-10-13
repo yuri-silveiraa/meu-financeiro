@@ -18,13 +18,15 @@ export default function ModalCartao() {
 
   return (
     <Modal
-      title={editingCartao ? 'Editar Cartão de Crédito' : 'Novo Cartão de Crédito'}
+      title={editingCartao ? 'Editar Cartão' : 'Novo Cartão'}
       open={isModalCartaoOpen}
       onOk={handleSaveCartao}
       onCancel={() => setIsModalCartaoOpen(false)}
       okText="Salvar"
       cancelText="Cancelar"
       destroyOnClose
+      width={460}
+      className="modern-form-modal"
     >
       <Form
         form={formCartao}
@@ -36,19 +38,25 @@ export default function ModalCartao() {
           dia_vencimento: 5,
           limite: 1000,
         }}
+        style={{ paddingTop: 4 }}
       >
         <Form.Item
           name="nome"
-          label="Nome do Cartão"
+          label={<span className="form-label-compact">Nome do Cartão</span>}
           rules={[{ required: true, message: 'Informe o nome do cartão' }]}
+          style={{ marginBottom: 10 }}
         >
-          <Input placeholder="Ex: Nubank, C6 Carbon, Itaú Click" />
+          <Input placeholder="Ex: Nubank, C6, Itaú..." className="form-input-compact" />
         </Form.Item>
 
-        <Row gutter={16}>
+        <Row gutter={10}>
           <Col span={12}>
-            <Form.Item name="bandeira" label="Bandeira">
-              <Select placeholder="Selecione">
+            <Form.Item
+              name="bandeira"
+              label={<span className="form-label-compact">Bandeira</span>}
+              style={{ marginBottom: 10 }}
+            >
+              <Select placeholder="Selecione" className="form-select-compact">
                 {BANDEIRAS.map((b) => (
                   <Option key={b.value} value={b.value}>
                     {b.label}
@@ -60,43 +68,51 @@ export default function ModalCartao() {
           <Col span={12}>
             <Form.Item
               name="limite"
-              label="Limite Total (R$)"
+              label={<span className="form-label-compact">Limite Total (R$)</span>}
               rules={[{ required: true, message: 'Informe o limite' }]}
+              style={{ marginBottom: 10 }}
             >
-              <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="Ex: 5000.00" />
+              <InputNumber
+                min={0}
+                precision={2}
+                style={{ width: '100%', height: 38 }}
+                placeholder="Ex: 5000.00"
+              />
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        <Row gutter={10}>
           <Col span={12}>
             <Form.Item
               name="dia_fechamento"
-              label="Dia de Fechamento"
+              label={<span className="form-label-compact">Dia Fechamento</span>}
               rules={[{ required: true, message: 'Informe o dia' }]}
-              tooltip="Dia em que a fatura fecha para novas compras"
+              tooltip="Dia em que a fatura fecha"
+              style={{ marginBottom: 10 }}
             >
-              <InputNumber min={1} max={31} style={{ width: '100%' }} placeholder="Ex: 25" />
+              <InputNumber min={1} max={31} style={{ width: '100%', height: 38 }} placeholder="Ex: 25" />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="dia_vencimento"
-              label="Dia de Vencimento"
+              label={<span className="form-label-compact">Dia Vencimento</span>}
               rules={[{ required: true, message: 'Informe o dia' }]}
-              tooltip="Dia base de vencimento (se cair no fim de semana ou feriado, posterga para o dia útil)"
+              tooltip="Dia do vencimento"
+              style={{ marginBottom: 10 }}
             >
-              <InputNumber min={1} max={31} style={{ width: '100%' }} placeholder="Ex: 5" />
+              <InputNumber min={1} max={31} style={{ width: '100%', height: 38 }} placeholder="Ex: 5" />
             </Form.Item>
           </Col>
         </Row>
 
         <Form.Item
           name="conta_padrao_id"
-          label="Conta Bancária Padrão para Débito (Opcional)"
-          tooltip="Conta usada como sugestão ao pagar a fatura"
+          label={<span className="form-label-compact">Conta Débito Padrão (Opcional)</span>}
+          style={{ marginBottom: 10 }}
         >
-          <Select placeholder="Selecione uma conta bancária" allowClear>
+          <Select placeholder="Selecione a conta..." allowClear className="form-select-compact">
             {contas.map((c) => (
               <Option key={c.id} value={c.id}>
                 {c.nome} {c.banco ? `(${c.banco})` : ''}
@@ -105,7 +121,11 @@ export default function ModalCartao() {
           </Select>
         </Form.Item>
 
-        <Form.Item name="cor" label="Cor do Cartão">
+        <Form.Item
+          name="cor"
+          label={<span className="form-label-compact">Cor do Cartão</span>}
+          style={{ marginBottom: 0 }}
+        >
           <ColorSelect />
         </Form.Item>
       </Form>

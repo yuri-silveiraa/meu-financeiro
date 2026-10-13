@@ -243,7 +243,7 @@ function Configuracoes() {
            {error}
          </div>
        )}
-       <h1 className="page-title">Configurações</h1>
+
 
         <div className="config-grid">
          <div className="card">
@@ -317,87 +317,6 @@ function Configuracoes() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 24 }}>
-        <h3 style={{ marginBottom: 16 }}>Ajuda - Importação de CSV</h3>
-        <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-          <p style={{ marginBottom: 12 }}>Para importar extratos bancários, o arquivo CSV deve conter colunas como:</p>
-          <ul style={{ paddingLeft: 20 }}>
-            <li><strong style={{ color: 'var(--text-primary)' }}>data</strong> - Data da transação (formato YYYY-MM-DD)</li>
-            <li><strong style={{ color: 'var(--text-primary)' }}>descricao</strong> - Descrição da transação</li>
-            <li><strong style={{ color: 'var(--text-primary)' }}>valor</strong> - Valor da transação (positivo para receita, negativo para despesa)</li>
-            <li><strong style={{ color: 'var(--text-primary)' }}>tipo_pagamento</strong> - (opcional) credito, debito, pix, dinheiro, boleto</li>
-          </ul>
-          <p style={{ marginTop: 12 }}>As categorias são automaticamente atribuídas quando a descrição contém o nome da categoria.</p>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginTop: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>WhatsApp Bot</h3>
-          <span style={{
-            background: 'rgba(245, 158, 11, 0.15)',
-            color: '#f59e0b',
-            padding: '4px 10px',
-            borderRadius: 12,
-            fontSize: 12,
-            fontWeight: 600,
-            border: '1px solid rgba(245, 158, 11, 0.3)'
-          }}>
-            🚧 Em desenvolvimento
-          </span>
-        </div>
-        <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-          <div style={{
-            padding: '12px 16px',
-            background: 'rgba(59, 130, 246, 0.08)',
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            borderRadius: 10,
-            marginBottom: 16,
-            color: 'var(--text-primary)'
-          }}>
-            <strong style={{ display: 'block', marginBottom: 4, color: '#60a5fa' }}>ℹ️ Recurso em preparação</strong>
-            A integração com o bot do WhatsApp ainda está em fase de desenvolvimento e configuração.
-            Em breve você poderá vincular seu número para registrar despesas e receber alertas diretamente pelo WhatsApp!
-          </div>
-
-          <p style={{ marginBottom: 12 }}>
-            Quando a funcionalidade estiver disponível, você poderá vincular seu WhatsApp para gerenciar suas contas de forma rápida pelo chat.
-          </p>
-
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled
-              onClick={() => {
-                message.info('A integração com o WhatsApp Bot ainda está em desenvolvimento e estará disponível em breve!');
-              }}
-              style={{
-                opacity: 0.6,
-                cursor: 'not-allowed',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-              title="Recurso em desenvolvimento"
-            >
-              <span>Gerar Código de Vinculação (Em Breve)</span>
-            </button>
-          </div>
-
-          <div style={{ marginTop: 16, padding: 16, background: 'var(--bg-card-subtle)', border: '1px solid var(--border-color)', borderRadius: 10 }}>
-            <strong style={{ color: 'var(--text-primary)' }}>Como funcionará após o lançamento:</strong>
-            <ol style={{ paddingLeft: 20, marginTop: 8 }}>
-              <li>Você gerará um código seguro de 6 dígitos aqui nas configurações</li>
-              <li>Enviará esse código para o número oficial do bot no WhatsApp</li>
-              <li>Sua conta será vinculada instantaneamente</li>
-            </ol>
-            <p style={{ marginTop: 10, color: 'var(--text-muted)' }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Comandos que estarão disponíveis:</strong> saldo, gastei, recebi, pendentes, gastosfixos, categorias, alertas
-            </p>
-          </div>
-        </div>
-      </div>
 
       <div className="card" style={{ marginTop: 24 }}>
         <h3 style={{ marginBottom: 16 }}>🔒 Privacidade e Dados (LGPD)</h3>
@@ -430,114 +349,133 @@ function Configuracoes() {
         onCancel={closeCategoriaModal}
         title={editandoCategoria ? 'Editar Categoria' : 'Nova Categoria'}
         footer={null}
-        width={420}
+        width={440}
         destroyOnHide
+        className="modern-form-modal"
       >
-        <form onSubmit={handleSubmitCategoria} style={{ paddingTop: 8 }}>
-          <div className="form-group">
-            <label className="form-label">Nome</label>
-            <input
-              type="text"
-              value={formCategoria.nome}
-              onChange={(e) => setFormCategoria({ ...formCategoria, nome: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label className="form-label" style={{ margin: 0 }}>Cor da Categoria</label>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span
+        <form onSubmit={handleSubmitCategoria} className="modern-form">
+          <div className="form-fields-compact">
+            <div className="form-group-compact">
+              <label className="form-label-compact">Nome</label>
+              <input
+                type="text"
+                placeholder="Ex: Alimentação, Transporte..."
+                value={formCategoria.nome}
+                onChange={(e) => setFormCategoria({ ...formCategoria, nome: e.target.value })}
+                className="form-input-compact"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="form-group-compact">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label-compact" style={{ margin: 0 }}>Cor da Categoria</label>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      background: formCategoria.cor || '#3b82f6',
+                      border: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}
+                  />
+                  <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                    {formCategoria.cor?.toUpperCase() || '#3B82F6'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Paleta rápida com 24 cores */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(8, 1fr)',
+                gap: 6,
+                marginBottom: 10
+              }}>
+                {CORES.map((cor) => {
+                  const isSelected = formCategoria.cor?.toLowerCase() === cor.toLowerCase();
+                  return (
+                    <button
+                      key={cor}
+                      type="button"
+                      title={cor}
+                      onClick={() => setFormCategoria({ ...formCategoria, cor })}
+                      style={{
+                        height: 28,
+                        borderRadius: 6,
+                        background: cor,
+                        border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.1)',
+                        boxShadow: isSelected ? '0 0 0 2px #3b82f6, 0 2px 6px rgba(0,0,0,0.4)' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                        transform: isSelected ? 'scale(1.08)' : 'scale(1)'
+                      }}
+                    >
+                      {isSelected && '✓'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Opção de cor personalizada */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 10px',
+                borderRadius: 8,
+                background: 'var(--bg-card-subtle, rgba(255, 255, 255, 0.04))',
+                border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))'
+              }}>
+                <input
+                  type="color"
+                  value={formCategoria.cor && formCategoria.cor.startsWith('#') && formCategoria.cor.length === 7 ? formCategoria.cor : '#3b82f6'}
+                  onChange={(e) => setFormCategoria({ ...formCategoria, cor: e.target.value })}
                   style={{
-                    display: 'inline-block',
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    background: formCategoria.cor || '#3b82f6',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                    width: 28,
+                    height: 28,
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    background: 'transparent',
+                    padding: 0
                   }}
+                  id="custom-color-input"
                 />
-                <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
-                  {formCategoria.cor?.toUpperCase() || '#3B82F6'}
-                </span>
+                <label htmlFor="custom-color-input" style={{ cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)', flex: 1, userSelect: 'none' }}>
+                  <span style={{ fontWeight: 500, display: 'block' }}>Cor personalizada</span>
+                </label>
               </div>
             </div>
-
-            {/* Paleta rápida com 24 cores */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(8, 1fr)',
-              gap: 8,
-              marginBottom: 12
-            }}>
-              {CORES.map((cor) => {
-                const isSelected = formCategoria.cor?.toLowerCase() === cor.toLowerCase();
-                return (
-                  <button
-                    key={cor}
-                    type="button"
-                    title={cor}
-                    onClick={() => setFormCategoria({ ...formCategoria, cor })}
-                    style={{
-                      height: 32,
-                      borderRadius: 8,
-                      background: cor,
-                      border: isSelected ? '2px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.1)',
-                      boxShadow: isSelected ? '0 0 0 2px #3b82f6, 0 2px 6px rgba(0,0,0,0.4)' : 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                      fontSize: 14,
-                      fontWeight: 'bold',
-                      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                      transform: isSelected ? 'scale(1.08)' : 'scale(1)'
-                    }}
-                  >
-                    {isSelected && '✓'}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Opção de cor personalizada */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '8px 12px',
-              borderRadius: 8,
-              background: 'var(--bg-card-subtle, rgba(255, 255, 255, 0.04))',
-              border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))'
-            }}>
-              <input
-                type="color"
-                value={formCategoria.cor && formCategoria.cor.startsWith('#') && formCategoria.cor.length === 7 ? formCategoria.cor : '#3b82f6'}
-                onChange={(e) => setFormCategoria({ ...formCategoria, cor: e.target.value })}
-                style={{
-                  width: 34,
-                  height: 34,
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  background: 'transparent',
-                  padding: 0
-                }}
-                id="custom-color-input"
-              />
-              <label htmlFor="custom-color-input" style={{ cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)', flex: 1, userSelect: 'none' }}>
-                <span style={{ fontWeight: 500, display: 'block' }}>Escolher cor personalizada</span>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                  Clique no quadrado colorido para abrir o seletor completo
-                </span>
-              </label>
-            </div>
           </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={closeCategoriaModal}>Cancelar</button>
-            <button type="submit" className="btn-primary">Salvar</button>
+
+          <div className="modal-actions" style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={closeCategoriaModal}
+                style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px' }}
+              >
+                Salvar
+              </button>
+            </div>
           </div>
         </form>
       </Modal>
@@ -547,55 +485,84 @@ function Configuracoes() {
         onCancel={closeContaModal}
         title={editandoConta ? 'Editar Conta' : 'Nova Conta'}
         footer={null}
-        width={480}
+        width={460}
         destroyOnHide
+        className="modern-form-modal"
       >
-        <form onSubmit={handleSubmitConta} style={{ paddingTop: 8 }}>
-          <div className="form-group">
-            <label className="form-label">Nome da Conta</label>
-            <input
-              type="text"
-              value={formConta.nome}
-              onChange={(e) => setFormConta({ ...formConta, nome: e.target.value })}
-              className="form-input"
-              required
-            />
+        <form onSubmit={handleSubmitConta} className="modern-form">
+          <div className="form-fields-compact">
+            <div className="form-group-compact">
+              <label className="form-label-compact">Nome da Conta</label>
+              <input
+                type="text"
+                placeholder="Ex: Conta Principal, Reserva..."
+                value={formConta.nome}
+                onChange={(e) => setFormConta({ ...formConta, nome: e.target.value })}
+                className="form-input-compact"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="form-row-compact">
+              <div className="form-group-compact">
+                <label className="form-label-compact">Banco</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Nubank, Inter..."
+                  value={formConta.banco}
+                  onChange={(e) => setFormConta({ ...formConta, banco: e.target.value })}
+                  className="form-input-compact"
+                  required
+                />
+              </div>
+
+              <div className="form-group-compact">
+                <label className="form-label-compact">Tipo de Conta</label>
+                <select
+                  value={formConta.tipo_conta}
+                  onChange={(e) => setFormConta({ ...formConta, tipo_conta: e.target.value })}
+                  className="form-select-compact"
+                >
+                  <option value="corrente">Conta Corrente</option>
+                  <option value="poupanca">Poupança</option>
+                  <option value="investimento">Investimento</option>
+                  <option value="carteira">Carteira</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group-compact">
+              <label className="form-label-compact">Saldo Inicial (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={formConta.saldo_inicial}
+                onChange={(e) => setFormConta({ ...formConta, saldo_inicial: e.target.value })}
+                className="form-input-compact"
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Banco</label>
-            <input
-              type="text"
-              value={formConta.banco}
-              onChange={(e) => setFormConta({ ...formConta, banco: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Tipo de Conta</label>
-            <select
-              value={formConta.tipo_conta}
-              onChange={(e) => setFormConta({ ...formConta, tipo_conta: e.target.value })}
-              className="form-select"
-            >
-              <option value="corrente">Conta Corrente</option>
-              <option value="poupanca">Poupança</option>
-              <option value="investimento">Investimento</option>
-              <option value="carteira">Carteira</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Saldo Inicial</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formConta.saldo_inicial}
-              onChange={(e) => setFormConta({ ...formConta, saldo_inicial: e.target.value })}
-              className="form-input"
-            />
-          </div>
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={closeContaModal}>Cancelar</button>
-            <button type="submit" className="btn-primary">Salvar</button>
+
+          <div className="modal-actions" style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={closeContaModal}
+                style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px' }}
+              >
+                Salvar
+              </button>
+            </div>
           </div>
         </form>
       </Modal>

@@ -2,6 +2,7 @@ import React from 'react';
 import { TransacoesProvider, useTransacoes } from './TransacoesContext';
 import TransacoesToolbar from './components/TransacoesToolbar';
 import TransacoesSummary from './components/TransacoesSummary';
+import TransacoesMonthNav from './components/TransacoesMonthNav';
 import TransacoesFilters from './components/TransacoesFilters';
 import TransacoesList from './components/TransacoesList';
 import ModalFiltros from './components/ModalFiltros';
@@ -16,6 +17,7 @@ function TransacoesContent() {
 
       <TransacoesToolbar />
       <TransacoesSummary />
+      <TransacoesMonthNav />
 
       <div className="workspace-panel">
         <TransacoesFilters />

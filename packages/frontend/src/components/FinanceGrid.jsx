@@ -107,10 +107,6 @@ function FinanceGrid({
     updateVisibleRows();
   }, [storageKey, updateVisibleRows]);
 
-  const exportCsv = useCallback(() => {
-    gridApiRef.current?.exportDataAsCsv();
-  }, []);
-
   const clearSelection = useCallback(() => {
     gridApiRef.current?.deselectAll();
     setSelectedRows([]);
@@ -140,7 +136,6 @@ function FinanceGrid({
         <span>{visibleRows} de {rowData.length} registros</span>
         <div className="finance-grid-actions">
           <button type="button" className="btn-ghost" onClick={resetLayout}>Resetar layout</button>
-          <button type="button" className="btn-ghost" onClick={exportCsv}>Exportar CSV</button>
         </div>
       </div>
 

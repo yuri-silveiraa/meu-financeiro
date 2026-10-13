@@ -14,18 +14,15 @@ function CartoesContent() {
   const { cartoes, loading, handleOpenModalCartao } = useCartoes();
 
   return (
-    <div style={{ padding: '12px 0', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            <CreditCardOutlined style={{ marginRight: 8, color: '#6366f1' }} />
-            Cartões de Crédito
-          </Title>
-          <Text type="secondary">Gerencie limites, faturas e compras parceladas em dias úteis</Text>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModalCartao()}>
-          Novo Cartão
-        </Button>
+    <div className="workspace" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <div className="transacoes-top-action">
+        <button
+          type="button"
+          className="btn-primary btn-nova-transacao"
+          onClick={() => handleOpenModalCartao()}
+        >
+          <PlusOutlined /> Novo Cartão
+        </button>
       </div>
 
       {loading && cartoes.length === 0 ? (

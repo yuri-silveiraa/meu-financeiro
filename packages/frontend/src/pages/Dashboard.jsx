@@ -4,9 +4,9 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Legend
 } from 'recharts';
-import { CreditCardOutlined, RightOutlined } from '@ant-design/icons';
+import { CreditCardOutlined, RightOutlined, CalendarOutlined } from '@ant-design/icons';
 import { formatCurrency } from '../utils/currency';
-import { getMonthName, getYearOptions } from '../utils/date';
+import { getMonthName } from '../utils/date';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import EmptyState from '../components/EmptyState';
@@ -43,13 +43,11 @@ function Dashboard() {
   const [previsoes, setPrevisoes] = useState([]);
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
-  const [yearOptions, setYearOptions] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     loadEstatisticas();
     loadPrevisoes();
-    setYearOptions(getYearOptions());
   }, [mes, ano]);
 
   const loadEstatisticas = async () => {
@@ -110,21 +108,31 @@ function Dashboard() {
     <div>
       {error && <div className="alert-error" style={{ marginBottom: 16 }}>{error}</div>}
 
-      <h1 className="page-title">Dashboard</h1>
+      <div className="transacoes-month-nav">
+        <button
+          type="button"
+          className="nav-arrow"
+          onClick={irParaMesAnterior}
+          aria-label="Mês anterior"
+          title="Mês anterior"
+        >
+          ‹
+        </button>
 
-      <div className="dashboard-nav">
-        <button className="nav-arrow" onClick={irParaMesAnterior} aria-label="Mês anterior">‹</button>
-        <select value={mes} onChange={(e) => setMes(Number(e.target.value))} className="form-select">
-          {Array.from({ length: 12 }, (_, i) => (
-            <option key={i} value={i + 1}>{getMonthName(i)}</option>
-          ))}
-        </select>
-        <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="form-select">
-          {yearOptions.map((year) => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
-        <button className="nav-arrow" onClick={irParaProximoMes} aria-label="Próximo mês">›</button>
+        <div className="month-display-pill" title={`Mês selecionado: ${getMonthName(mes - 1)} de ${ano}`}>
+          <CalendarOutlined style={{ marginRight: 6, fontSize: 14, opacity: 0.8 }} />
+          <span className="month-text">{getMonthName(mes - 1)} / {ano}</span>
+        </div>
+
+        <button
+          type="button"
+          className="nav-arrow"
+          onClick={irParaProximoMes}
+          aria-label="Próximo mês"
+          title="Próximo mês"
+        >
+          ›
+        </button>
       </div>
 
       <div className="stats-grid">
@@ -157,7 +165,6 @@ function Dashboard() {
           <div className={`stat-value ${estatisticas.saldoProjetado >= 0 ? 'positive' : 'negative'}`}>
             {formatCurrency(estatisticas.saldoProjetado)}
           </div>
-          <div className="stat-note">(inclui não pagas)</div>
         </div>
 
         {/* Card Faturas do Mês */}

@@ -9,11 +9,12 @@ export default function TransacoesSummary() {
     <div className="stats-grid finance-summary">
       <div className="stat-card receita">
         <div className="stat-header">
-          <span className="stat-label">Receitas pagas</span>
+          <span className="stat-label">Receitas recebidas</span>
           <span className="stat-indicator positive">↑</span>
         </div>
         <div className="stat-value positive">{formatCurrency(totalReceitas)}</div>
       </div>
+
       <div className="stat-card despesa">
         <div className="stat-header">
           <span className="stat-label">Despesas pagas</span>
@@ -21,7 +22,8 @@ export default function TransacoesSummary() {
         </div>
         <div className="stat-value negative">{formatCurrency(totalDespesasPagas)}</div>
       </div>
-      <div className="stat-card">
+
+      <div className="stat-card saldo-atual">
         <div className="stat-header">
           <span className="stat-label">Saldo atual</span>
           <span className="stat-indicator neutral">⚡</span>
@@ -30,7 +32,8 @@ export default function TransacoesSummary() {
           {formatCurrency(saldoAtual)}
         </div>
       </div>
-      <div className="stat-card saldo">
+
+      <div className="stat-card saldo-projetado">
         <div className="stat-header">
           <span className="stat-label">Saldo projetado</span>
           <span className="stat-indicator saldo">📊</span>
@@ -38,7 +41,6 @@ export default function TransacoesSummary() {
         <div className={`stat-value ${saldoProjetado >= 0 ? 'positive' : 'negative'}`}>
           {formatCurrency(saldoProjetado)}
         </div>
-        <div className="stat-note">Inclui despesas abertas</div>
       </div>
     </div>
   );

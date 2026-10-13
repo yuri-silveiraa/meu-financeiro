@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, PlusOutlined, ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { Modal, message } from 'antd';
 import GastoFixoCard from '../components/GastoFixoCard';
 import { formatCurrency } from '../utils/currency';
@@ -300,12 +300,8 @@ function GastosFixos() {
     <div className="workspace">
       {error && <div className="alert-error">{error}</div>}
 
-      <div className="workspace-header">
-        <div>
-          <h1 className="page-title">Receitas e Despesas Fixas</h1>
-          <p className="page-subtitle">Controle seus compromissos fixos e previsibilidade do caixa.</p>
-        </div>
-        <button className="btn-primary" onClick={openCreateModal} disabled={loading}>
+      <div className="transacoes-top-action">
+        <button className="btn-primary btn-nova-transacao" onClick={openCreateModal} disabled={loading}>
           <PlusOutlined /> {botaoLabel[abaAtiva]}
         </button>
       </div>
@@ -403,175 +399,197 @@ function GastosFixos() {
             : (form.tipo === 'receita' ? 'Nova Receita Fixa' : 'Novo Gasto Fixo')
         }
         footer={null}
-        width={640}
+        width={460}
         destroyOnHide
+        className="modern-form-modal"
       >
-        <form onSubmit={handleSubmit} style={{ paddingTop: 8 }}>
-          <div className="form-group">
-            <label className="form-label">Nome</label>
+        <form onSubmit={handleSubmit} className="modern-form">
+          {/* Toggle Despesa / Receita */}
+          <div className="type-toggle-pill">
+            <button
+              type="button"
+              className={`type-toggle-opt despesa ${form.tipo === 'despesa' ? 'active' : ''}`}
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  tipo: 'despesa',
+                }));
+              }}
+            >
+              <ArrowDownOutlined style={{ fontSize: 11 }} /> Despesa
+            </button>
+            <button
+              type="button"
+              className={`type-toggle-opt receita ${form.tipo === 'receita' ? 'active' : ''}`}
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  tipo: 'receita',
+                  tipo_pagamento: prev.tipo_pagamento === 'credito' ? 'pix' : prev.tipo_pagamento,
+                }));
+              }}
+            >
+              <ArrowUpOutlined style={{ fontSize: 11 }} /> Receita
+            </button>
+          </div>
+
+          {/* Valor Mensal Compacto */}
+          <div className={`amount-row ${form.tipo}`}>
+            <span className="amount-currency">R$</span>
             <input
-              type="text"
-              value={form.nome}
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              className="form-input"
-              placeholder={placeholderNome[form.tipo || abaAtiva]}
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={form.valor}
+              onChange={(e) => setForm({ ...form, valor: e.target.value })}
+              className="amount-input"
               required
+              autoFocus={!editando}
             />
           </div>
 
-          <div className="form-grid three-columns">
-            <div className="form-group">
-              <label className="form-label">Tipo</label>
-              <select
-                value={form.tipo}
-                onChange={(e) => {
-                  const newTipo = e.target.value;
-                  setForm((prev) => ({
-                    ...prev,
-                    tipo: newTipo,
-                    tipo_pagamento: newTipo === 'receita' && prev.tipo_pagamento === 'credito' ? 'pix' : prev.tipo_pagamento
-                  }));
-                }}
-                className="form-select"
-              >
-                <option value="despesa">Despesa</option>
-                <option value="receita">Receita</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Tipo de Pagamento</label>
-              <select
-                value={form.tipo_pagamento}
-                onChange={(e) => {
-                  const newTipoPagamento = e.target.value;
-                  let newCartaoId = form.cartao_id;
-                  let newDiaVencimento = form.dia_vencimento;
-                  if (newTipoPagamento === 'credito' && !newCartaoId && cartoes.length > 0) {
-                    newCartaoId = cartoes[0].id.toString();
-                    newDiaVencimento = cartoes[0].dia_vencimento.toString();
-                  }
-                  setForm((prev) => ({
-                    ...prev,
-                    tipo_pagamento: newTipoPagamento,
-                    cartao_id: newCartaoId,
-                    dia_vencimento: newDiaVencimento
-                  }));
-                }}
-                className="form-select"
-              >
-                <option value="pix">Pix</option>
-                <option value="debito">Débito</option>
-                {form.tipo === 'despesa' && <option value="credito">Crédito</option>}
-                <option value="boleto">Boleto</option>
-                <option value="dinheiro">Dinheiro</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Categoria</label>
-              <select
-                value={form.categoria_id}
-                onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
-                className="form-select"
-              >
-                <option value="">Selecione...</option>
-                {categorias.map((categoria) => (
-                  <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {isCredito ? (
-            <div className="form-group">
-              <label className="form-label">Cartão de Crédito</label>
-              <select
-                value={form.cartao_id}
-                onChange={(e) => {
-                  const cardId = e.target.value;
-                  const card = cartoes.find((c) => c.id.toString() === cardId);
-                  setForm((prev) => ({
-                    ...prev,
-                    cartao_id: cardId,
-                    dia_vencimento: card ? card.dia_vencimento.toString() : prev.dia_vencimento
-                  }));
-                }}
-                className="form-select"
-                required
-              >
-                <option value="">Selecione o cartão...</option>
-                {cartoes.map((cartao) => (
-                  <option key={cartao.id} value={cartao.id}>
-                    {cartao.nome} (Fecha: dia {cartao.dia_fechamento} / Vence: dia {cartao.dia_vencimento})
-                  </option>
-                ))}
-              </select>
-              {cartoes.length === 0 ? (
-                <span className="form-hint" style={{ color: '#ef4444' }}>
-                  Nenhum cartão cadastrado. Cadastre um cartão na tela de Cartões primeiro.
-                </span>
-              ) : (
-                selectedCartao && (
-                  <span className="form-hint" style={{ color: '#10b981', display: 'block', marginTop: 4 }}>
-                    ✓ Vencimento automático: todo dia {selectedCartao.dia_vencimento} (conforme fatura do cartão)
-                  </span>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="form-group">
-              <label className="form-label">Conta</label>
-              <select
-                value={form.conta_id}
-                onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
-                className="form-select"
-              >
-                <option value="">Nenhuma conta</option>
-                {contas.map((conta) => (
-                  <option key={conta.id} value={conta.id}>{conta.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className={isCredito ? 'form-grid two-columns' : 'form-grid three-columns'}>
-            <div className="form-group">
-              <label className="form-label">Valor Mensal</label>
+          {/* Campos em layout compacto */}
+          <div className="form-fields-compact">
+            <div className="form-group-compact">
+              <label className="form-label-compact">Nome</label>
               <input
-                type="number"
-                step="0.01"
-                value={form.valor}
-                onChange={(e) => setForm({ ...form, valor: e.target.value })}
-                className="form-input"
+                type="text"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                className="form-input-compact"
+                placeholder={placeholderNome[form.tipo || abaAtiva]}
                 required
               />
             </div>
-            {!isCredito && (
-              <div className="form-group">
-                <label className="form-label">Dia do Vencimento</label>
+
+            <div className="form-row-compact">
+              <div className="form-group-compact">
+                <label className="form-label-compact">Categoria</label>
+                <select
+                  value={form.categoria_id}
+                  onChange={(e) => setForm({ ...form, categoria_id: e.target.value })}
+                  className="form-select-compact"
+                >
+                  <option value="">Selecione...</option>
+                  {categorias.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group-compact">
+                <label className="form-label-compact">Pagamento</label>
+                <select
+                  value={form.tipo_pagamento}
+                  onChange={(e) => {
+                    const newTipoPagamento = e.target.value;
+                    let newCartaoId = form.cartao_id;
+                    let newDiaVencimento = form.dia_vencimento;
+                    if (newTipoPagamento === 'credito' && !newCartaoId && cartoes.length > 0) {
+                      newCartaoId = cartoes[0].id.toString();
+                      newDiaVencimento = cartoes[0].dia_vencimento.toString();
+                    }
+                    setForm((prev) => ({
+                      ...prev,
+                      tipo_pagamento: newTipoPagamento,
+                      cartao_id: newCartaoId,
+                      dia_vencimento: newDiaVencimento,
+                    }));
+                  }}
+                  className="form-select-compact"
+                >
+                  <option value="pix">Pix</option>
+                  <option value="debito">Débito</option>
+                  {form.tipo === 'despesa' && <option value="credito">Crédito</option>}
+                  <option value="boleto">Boleto</option>
+                  <option value="dinheiro">Dinheiro</option>
+                </select>
+              </div>
+            </div>
+
+            {isCredito ? (
+              <div className="form-group-compact">
+                <label className="form-label-compact">Cartão de Crédito</label>
+                <select
+                  value={form.cartao_id}
+                  onChange={(e) => {
+                    const cardId = e.target.value;
+                    const card = cartoes.find((c) => c.id.toString() === cardId);
+                    setForm((prev) => ({
+                      ...prev,
+                      cartao_id: cardId,
+                      dia_vencimento: card ? card.dia_vencimento.toString() : prev.dia_vencimento,
+                    }));
+                  }}
+                  className="form-select-compact"
+                  required
+                >
+                  <option value="">Selecione o cartão...</option>
+                  {cartoes.map((card) => (
+                    <option key={card.id} value={card.id}>
+                      {card.nome} (Vence: dia {card.dia_vencimento})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="form-group-compact">
+                <label className="form-label-compact">Conta Bancária (Opcional)</label>
+                <select
+                  value={form.conta_id}
+                  onChange={(e) => setForm({ ...form, conta_id: e.target.value })}
+                  className="form-select-compact"
+                >
+                  <option value="">Nenhuma conta</option>
+                  {contas.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="form-row-compact">
+              {!isCredito ? (
+                <div className="form-group-compact">
+                  <label className="form-label-compact">Dia do Vencimento</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.dia_vencimento}
+                    onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
+                    className="form-input-compact"
+                    placeholder="Ex: 10"
+                    required
+                  />
+                </div>
+              ) : (
+                <div className="form-group-compact">
+                  <label className="form-label-compact">Dia do Vencimento</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedCartao ? `Dia ${selectedCartao.dia_vencimento} (Cartão)` : 'Dia do cartão'}
+                    className="form-input-compact"
+                  />
+                </div>
+              )}
+
+              <div className="form-group-compact">
+                <label className="form-label-compact">Parcelas (Vazio = Fixo)</label>
                 <input
                   type="number"
                   min="1"
-                  max="31"
-                  value={form.dia_vencimento}
-                  onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
-                  className="form-input"
-                  required
+                  value={form.total_parcelas}
+                  onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
+                  className="form-input-compact"
+                  placeholder="Recorrente"
                 />
               </div>
-            )}
-            <div className="form-group">
-              <label className="form-label">Parcelas</label>
-              <input
-                type="number"
-                min="1"
-                value={form.total_parcelas}
-                onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
-                className="form-input"
-                placeholder="Recorrente"
-              />
-              <span className="form-hint">Vazio = recorrente para sempre</span>
             </div>
           </div>
+
           <div
             className="modal-actions"
             style={{ justifyContent: editando ? 'space-between' : 'flex-end' }}
@@ -580,7 +598,7 @@ function GastosFixos() {
               <button
                 type="button"
                 className="btn-ghost danger"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                style={{ padding: '6px 10px', fontSize: 12 }}
                 onClick={() => {
                   const idToDelete = editando.id;
                   setShowModal(false);
@@ -589,12 +607,25 @@ function GastosFixos() {
                   handleDelete(idToDelete);
                 }}
               >
-                <DeleteOutlined /> Excluir {editando.tipo === 'receita' ? 'Receita Fixa' : 'Gasto Fixo'}
+                <DeleteOutlined /> Excluir
               </button>
             )}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="btn-secondary" onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}>Cancelar</button>
-              <button type="submit" className="btn-primary">Salvar</button>
+            <div style={{ display: 'flex', gap: 8, width: editando ? 'auto' : '100%' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setShowModal(false); setEditando(null); resetForm(); }}
+                style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                style={{ flex: 1, height: 38, fontSize: 13, padding: '0 12px' }}
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </form>

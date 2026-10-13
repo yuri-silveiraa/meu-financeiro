@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import Papa from 'papaparse';
 import { Modal, message } from 'antd';
 import { api } from '../../services/api';
 import { validateTransacao } from '../../utils/validation';
-import { initialForm, initialFilters } from './constants';
+import { initialForm, initialFilters, formatInputDate } from './constants';
 
 const TransacoesContext = createContext(null);
 
@@ -13,6 +12,9 @@ export function TransacoesProvider({ children }) {
   const [categorias, setCategorias] = useState([]);
   const [contas, setContas] = useState([]);
   const [cartoes, setCartoes] = useState([]);
+  const today = useMemo(() => new Date(), []);
+  const [mes, setMes] = useState(today.getMonth() + 1);
+  const [ano, setAno] = useState(today.getFullYear());
   const [filtros, setFiltros] = useState(initialFilters);
   const [showModal, setShowModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -173,8 +175,9 @@ export function TransacoesProvider({ children }) {
       conta_id: form.conta_id ? parseInt(form.conta_id, 10) : null,
       categoria_id: form.categoria_id ? parseInt(form.categoria_id, 10) : null,
       cartao_id: form.tipo_pagamento === 'credito' && form.cartao_id ? parseInt(form.cartao_id, 10) : null,
-      total_parcelas: form.tipo_pagamento === 'credito' && !editando ? parseInt(form.total_parcelas, 10) || 1 : 1,
-      pago: form.tipo === 'receita' ? true : form.pago,
+      pago: form.tipo === 'receita'
+        ? true
+        : (form.tipo_pagamento === 'credito' ? false : (form.pago !== undefined ? form.pago : true)),
     };
 
     try {
@@ -196,55 +199,47 @@ export function TransacoesProvider({ children }) {
     }
   };
 
-  const handleImportCSV = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const transacoesImportadas = results.data
-          .map((row) => ({
-            data: row.data || row.Data || new Date().toISOString().split('T')[0],
-            descricao: row.descricao || row.Descricao || row.description || '',
-            valor: Math.abs(parseFloat(row.valor || row.Valor || row.value || 0)),
-            tipo: parseFloat(row.valor || row.Valor || row.value) > 0 ? 'receita' : 'despesa',
-            tipo_pagamento: (row.tipo_pagamento || row.tipo || 'debito').toLowerCase(),
-            descricao_lower: (row.descricao || row.Descricao || '').toLowerCase(),
-            pago: parseFloat(row.valor || row.Valor || row.value) > 0,
-          }))
-          .map((transacao) => {
-            const categoria = categorias.find((c) =>
-              transacao.descricao_lower.includes(c.nome.toLowerCase())
-            );
-            return { ...transacao, categoria_id: categoria?.id || null };
-          });
+  const irParaMesAnterior = useCallback(() => {
+    let novoMes = mes - 1;
+    let novoAno = ano;
+    if (novoMes < 1) {
+      novoMes = 12;
+      novoAno = ano - 1;
+    }
+    setMes(novoMes);
+    setAno(novoAno);
+    const firstDay = new Date(novoAno, novoMes - 1, 1);
+    const lastDay = new Date(novoAno, novoMes, 0);
+    setFiltros((prev) => ({
+      ...prev,
+      dataInicio: formatInputDate(firstDay),
+      dataFim: formatInputDate(lastDay),
+    }));
+  }, [mes, ano]);
 
-        let importadas = 0;
-        let erros = 0;
-        for (const transacao of transacoesImportadas) {
-          try {
-            await api.addTransacao(transacao);
-            importadas++;
-          } catch (err) {
-            console.error('Erro ao importar transação:', err);
-            erros++;
-          }
-        }
-
-        loadData();
-        if (erros > 0) {
-          message.warning(`${importadas} transações importadas (${erros} com erro)`);
-        } else {
-          message.success(`${importadas} transações importadas com sucesso!`);
-        }
-      },
-    });
-    e.target.value = '';
-  };
+  const irParaProximoMes = useCallback(() => {
+    let novoMes = mes + 1;
+    let novoAno = ano;
+    if (novoMes > 12) {
+      novoMes = 1;
+      novoAno = ano + 1;
+    }
+    setMes(novoMes);
+    setAno(novoAno);
+    const firstDay = new Date(novoAno, novoMes - 1, 1);
+    const lastDay = new Date(novoAno, novoMes, 0);
+    setFiltros((prev) => ({
+      ...prev,
+      dataInicio: formatInputDate(firstDay),
+      dataFim: formatInputDate(lastDay),
+    }));
+  }, [mes, ano]);
 
   const clearFilters = () => {
+    const curDate = new Date();
+    setMes(curDate.getMonth() + 1);
+    setAno(curDate.getFullYear());
     setFiltros(initialFilters());
     setQuickSearch('');
   };
@@ -279,6 +274,14 @@ export function TransacoesProvider({ children }) {
     [transacoes]
   );
 
+  const totalReceitasPendentes = useMemo(
+    () =>
+      transacoes
+        .filter((t) => t.tipo === 'receita' && !t.pago)
+        .reduce((sum, t) => sum + parseFloat(t.valor), 0),
+    [transacoes]
+  );
+
   const totalDespesasPagas = useMemo(
     () =>
       transacoes
@@ -296,7 +299,7 @@ export function TransacoesProvider({ children }) {
   );
 
   const saldoAtual = totalReceitas - totalDespesasPagas;
-  const saldoProjetado = totalReceitas - totalDespesasPagas - totalDespesasNaoPagas;
+  const saldoProjetado = (totalReceitas + totalReceitasPendentes) - (totalDespesasPagas + totalDespesasNaoPagas);
 
   const value = {
     transacoes,
@@ -305,6 +308,12 @@ export function TransacoesProvider({ children }) {
     cartoes,
     filtros,
     setFiltros,
+    mes,
+    ano,
+    setMes,
+    setAno,
+    irParaMesAnterior,
+    irParaProximoMes,
     showModal,
     setShowModal,
     showFilterModal,
@@ -320,6 +329,7 @@ export function TransacoesProvider({ children }) {
     activeFiltersCount,
     filteredTransacoes,
     totalReceitas,
+    totalReceitasPendentes,
     totalDespesasPagas,
     totalDespesasNaoPagas,
     saldoAtual,
@@ -331,7 +341,6 @@ export function TransacoesProvider({ children }) {
     resetForm,
     openCreateModal,
     handleSubmit,
-    handleImportCSV,
     clearFilters,
   };
 

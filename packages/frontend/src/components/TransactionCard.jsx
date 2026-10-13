@@ -71,9 +71,15 @@ const TransactionCard = ({ transaction, onTogglePago, onEdit }) => {
             e.stopPropagation();
             onTogglePago?.(transaction.id);
           }}
-          title={isPaid ? 'Clique para marcar como pendente' : 'Clique para marcar como pago'}
+          title={
+            isPaid
+              ? (isReceita ? 'Clique para marcar como a receber' : 'Clique para marcar como pendente')
+              : (isReceita ? 'Clique para marcar como recebido' : 'Clique para marcar como pago')
+          }
         >
-          {isPaid ? '✓ Pago' : '⏳ Pendente'}
+          {isPaid
+            ? (isReceita ? '✓ Recebido' : '✓ Pago')
+            : (isReceita ? '⏳ A receber' : '⏳ Pendente')}
         </button>
       </div>
     </div>

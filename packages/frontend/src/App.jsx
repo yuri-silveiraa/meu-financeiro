@@ -1,17 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Button, Drawer, ConfigProvider, Tooltip, theme as antdTheme } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Button, ConfigProvider, Tooltip, theme as antdTheme } from 'antd';
 import {
   DashboardOutlined,
   SwapOutlined,
-  FileTextOutlined,
-  FlagOutlined,
   SettingOutlined,
   WalletOutlined,
   CalendarOutlined,
   LogoutOutlined,
   UserOutlined,
-  MenuOutlined,
   CreditCardOutlined,
   SunOutlined,
   MoonOutlined,
@@ -22,8 +19,6 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Transacoes from './pages/Transacoes';
 import Cartoes from './pages/Cartoes';
-import Relatorios from './pages/Relatorios';
-import Metas from './pages/Metas';
 import GastosFixos from './pages/GastosFixos';
 import Configuracoes from './pages/Configuracoes';
 import TermosDeUso from './pages/TermosDeUso';
@@ -37,13 +32,11 @@ const { Header, Sider, Content } = Layout;
 const MOBILE_BREAKPOINT = 768;
 
 const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: 'Dashboard' },
+  { key: '/', icon: <DashboardOutlined />, label: 'Início' },
   { key: '/transacoes', icon: <SwapOutlined />, label: 'Transações' },
   { key: '/cartoes', icon: <CreditCardOutlined />, label: 'Cartões' },
   { key: '/gastosfixos', icon: <CalendarOutlined />, label: 'Fixos' },
-  { key: '/relatorios', icon: <FileTextOutlined />, label: 'Relatórios' },
-  { key: '/metas', icon: <FlagOutlined />, label: 'Metas' },
-  { key: '/configuracoes', icon: <SettingOutlined />, label: 'Configurações' },
+  { key: '/configuracoes', icon: <SettingOutlined />, label: 'Ajustes' },
 ];
 
 function useIsMobile() {
@@ -67,14 +60,7 @@ function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
-
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
-
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, [location.pathname]);
 
   const userMenuItems = [
     {
@@ -102,22 +88,7 @@ function AppLayout() {
 
   return (
     <Layout className="app-shell" style={{ minHeight: '100vh' }}>
-      {isMobile ? (
-        <Drawer
-          placement="left"
-          open={drawerOpen}
-          onClose={closeDrawer}
-          width={260}
-          className="app-drawer"
-          styles={{ body: { padding: 0, background: '#070b14' }, header: { display: 'none' } }}
-        >
-          <div className="app-brand">
-            <WalletOutlined />
-            <span>Meu Financeiro</span>
-          </div>
-          {sidebarMenu}
-        </Drawer>
-      ) : (
+      {!isMobile && (
         <Sider
           collapsible
           collapsed={collapsed}
@@ -135,14 +106,6 @@ function AppLayout() {
       <Layout className="app-main">
         <Header className="app-header">
           <div className="app-header-left">
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={() => setDrawerOpen(true)}
-                className="hamburger-btn"
-              />
-            )}
             <span className="app-header-title">{currentPageLabel}</span>
           </div>
           <div className="app-header-right">
@@ -171,20 +134,15 @@ function AppLayout() {
               <Route path="/transacoes" element={<Transacoes />} />
               <Route path="/cartoes" element={<Cartoes />} />
               <Route path="/gastosfixos" element={<GastosFixos />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/metas" element={<Metas />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/relatorios" element={<Navigate to="/" replace />} />
+              <Route path="/metas" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Footer />
           </ErrorBoundary>
         </Content>
-        {isMobile && (
-          <BottomNav
-            onOpenMenu={() => setDrawerOpen(true)}
-            onNewTransaction={() => navigate('/transacoes', { state: { openCreateModal: true } })}
-          />
-        )}
+        {isMobile && <BottomNav />}
       </Layout>
     </Layout>
   );
