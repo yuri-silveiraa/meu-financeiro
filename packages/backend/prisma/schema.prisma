@@ -1,0 +1,163 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  googleId       String    @unique @map("google_id")
+  email          String    @unique
+  name           String?
+  avatarUrl          String?   @map("avatar_url")
+  whatsappNumber     String?   @unique @map("whatsapp_number")
+  phoneVerified      Boolean?  @default(false) @map("phone_verified")
+  phoneVerifiedAt    DateTime? @map("phone_verified_at") @db.Timestamptz
+  consentAcceptedAt  DateTime? @map("consent_accepted_at") @db.Timestamptz
+  consentIp          String?   @map("consent_ip")
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  contas      Conta[]
+  categorias  Categoria[]
+  cartoes     Cartao[]
+  transacoes  Transacao[]
+  metas       Meta[]
+  gastosFixos GastoFixo[]
+
+  @@map("users")
+}
+
+model Conta {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  nome         String
+  banco        String?
+  tipoConta    String?  @default("corrente") @map("tipo_conta")
+  saldoInicial Decimal? @default(0) @map("saldo_inicial") @db.Decimal(12, 2)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartoes     Cartao[]
+  transacoes  Transacao[]
+  gastosFixos GastoFixo[]
+
+  @@index([userId], map: "idx_contas_user_id")
+  @@map("contas")
+}
+
+model Categoria {
+  id     Int     @id @default(autoincrement())
+  userId Int     @map("user_id")
+  nome   String
+  cor    String? @default("#6366f1")
+  icone  String? @default("folder")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transacoes  Transacao[]
+  metas       Meta[]
+  gastosFixos GastoFixo[]
+
+  @@index([userId], map: "idx_categorias_user_id")
+  @@map("categorias")
+}
+
+model Cartao {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  nome          String
+  bandeira      String?
+  limite        Decimal   @default(0) @db.Decimal(12, 2)
+  diaFechamento Int       @map("dia_fechamento")
+  diaVencimento Int       @map("dia_vencimento")
+  contaPadraoId Int?      @map("conta_padrao_id")
+  cor           String?   @default("#6366f1")
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaPadrao Conta?      @relation(fields: [contaPadraoId], references: [id], onDelete: SetNull)
+  transacoes  Transacao[]
+  gastosFixos GastoFixo[]
+
+  @@index([userId], map: "idx_cartoes_user_id")
+  @@map("cartoes")
+}
+
+model Transacao {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  data          DateTime  @db.Date
+  descricao     String?
+  valor         Decimal   @db.Decimal(12, 2)
+  tipo          String
+  tipoPagamento String?   @map("tipo_pagamento")
+  categoriaId   Int?      @map("categoria_id")
+  contaId       Int?      @map("conta_id")
+  cartaoId      Int?      @map("cartao_id")
+  pago          Boolean?  @default(false)
+  gastoFixoId   Int?      @map("gasto_fixo_id")
+  parcelaAtual  Int?      @map("parcela_atual")
+  totalParcelas Int?      @default(1) @map("total_parcelas")
+  faturaMes     Int?      @map("fatura_mes")
+  faturaAno     Int?      @map("fatura_ano")
+  compraGrupoId String?   @map("compra_grupo_id")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria  Categoria?  @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  conta      Conta?      @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  cartao     Cartao?     @relation(fields: [cartaoId], references: [id], onDelete: SetNull)
+  gastoFixo  GastoFixo?  @relation(fields: [gastoFixoId], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_transacoes_user_id")
+  @@index([data], map: "idx_transacoes_data")
+  @@index([categoriaId], map: "idx_transacoes_categoria_id")
+  @@index([contaId], map: "idx_transacoes_conta_id")
+  @@index([cartaoId], map: "idx_transacoes_cartao_id")
+  @@index([cartaoId, faturaAno, faturaMes], map: "idx_transacoes_fatura")
+  @@index([compraGrupoId], map: "idx_transacoes_compra_grupo_id")
+  @@map("transacoes")
+}
+
+model Meta {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  nome        String
+  valorMeta   Decimal   @map("valor_meta") @db.Decimal(12, 2)
+  valorAtual  Decimal?  @default(0) @map("valor_atual") @db.Decimal(12, 2)
+  prazo       DateTime? @db.Date
+  categoriaId Int?      @map("categoria_id")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria Categoria? @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_metas_user_id")
+  @@map("metas")
+}
+
+model GastoFixo {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  nome          String
+  valor         Decimal   @db.Decimal(12, 2)
+  diaVencimento Int       @map("dia_vencimento")
+  tipoPagamento String?   @map("tipo_pagamento")
+  categoriaId   Int?      @map("categoria_id")
+  contaId       Int?      @map("conta_id")
+  cartaoId      Int?      @map("cartao_id")
+  totalParcelas Int?      @map("total_parcelas")
+  tipo          String?   @default("despesa")
+  ativo         Boolean?  @default(true)
+  dataCriacao   DateTime? @map("data_criacao") @db.Date
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoria  Categoria?  @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  conta      Conta?      @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  cartao     Cartao?     @relation(fields: [cartaoId], references: [id], onDelete: SetNull)
+  transacoes Transacao[]
+
+  @@index([userId], map: "idx_gastos_fixos_user_id")
+  @@index([cartaoId], map: "idx_gastos_fixos_cartao_id")
+  @@map("gastos_fixos")
+}
