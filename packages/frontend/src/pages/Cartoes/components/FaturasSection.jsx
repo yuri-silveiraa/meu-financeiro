@@ -50,8 +50,8 @@ export default function FaturasSection() {
             <Row gutter={[24, 24]}>
               {/* Seletor de Faturas */}
               <Col xs={24} md={8}>
-                <Title level={5} style={{ marginBottom: 12 }}>Histórico de Faturas</Title>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Seletor Horizontal para Mobile */}
+                <div className="faturas-mobile-selector">
                   {faturas.map((f) => {
                     const isCurrentActive =
                       faturaDetalhada &&
@@ -60,41 +60,74 @@ export default function FaturasSection() {
 
                     return (
                       <div
-                        key={`${f.fatura_ano}-${f.fatura_mes}`}
+                        key={`mob-${f.fatura_ano}-${f.fatura_mes}`}
                         onClick={() => handleSelectFatura(f)}
-                        style={{
-                          padding: 14,
-                          borderRadius: 10,
-                          cursor: 'pointer',
-                          border: isCurrentActive ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                          background: isCurrentActive ? (isDark ? 'rgba(59, 130, 246, 0.16)' : '#eff6ff') : 'var(--bg-card-subtle)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          transition: 'all 0.2s',
-                        }}
+                        className={`fatura-pill-mobile ${isCurrentActive ? 'active' : ''}`}
                       >
-                        <div>
-                          <div style={{ fontWeight: 'bold' }}>
-                            {getMonthName(f.fatura_mes - 1)} / {f.fatura_ano}
-                          </div>
-                          <Text type="secondary" style={{ fontSize: 11 }}>
-                            Vence: {formatDataBr(f.data_vencimento)}
-                          </Text>
+                        <div className="fatura-pill-header">
+                          <span className="fatura-pill-date">
+                            {getMonthName(f.fatura_mes - 1)}/{f.fatura_ano}
+                          </span>
+                          <span className={`fatura-pill-tag ${f.pago ? 'paid' : 'open'}`}>
+                            {f.pago ? '✓ Paga' : 'Aberta'}
+                          </span>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 'bold', color: f.pago ? '#10b981' : '#ef4444' }}>
-                            {formatCurrency(f.total)}
-                          </div>
-                          {f.pago ? (
-                            <Tag color="success" icon={<CheckCircleOutlined />}>Paga</Tag>
-                          ) : (
-                            <Tag color="warning" icon={<ClockCircleOutlined />}>Aberta</Tag>
-                          )}
+                        <div className="fatura-pill-amount" style={{ color: f.pago ? '#10b981' : '#ef4444' }}>
+                          {formatCurrency(f.total)}
                         </div>
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Seletor Vertical para Desktop */}
+                <div className="faturas-desktop-selector">
+                  <Title level={5} style={{ marginBottom: 12 }}>Histórico de Faturas</Title>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {faturas.map((f) => {
+                      const isCurrentActive =
+                        faturaDetalhada &&
+                        faturaDetalhada.fatura_ano === f.fatura_ano &&
+                        faturaDetalhada.fatura_mes === f.fatura_mes;
+
+                      return (
+                        <div
+                          key={`${f.fatura_ano}-${f.fatura_mes}`}
+                          onClick={() => handleSelectFatura(f)}
+                          style={{
+                            padding: 14,
+                            borderRadius: 10,
+                            cursor: 'pointer',
+                            border: isCurrentActive ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                            background: isCurrentActive ? (isDark ? 'rgba(59, 130, 246, 0.16)' : '#eff6ff') : 'var(--bg-card-subtle)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 'bold' }}>
+                              {getMonthName(f.fatura_mes - 1)} / {f.fatura_ano}
+                            </div>
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                              Vence: {formatDataBr(f.data_vencimento)}
+                            </Text>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 'bold', color: f.pago ? '#10b981' : '#ef4444' }}>
+                              {formatCurrency(f.total)}
+                            </div>
+                            {f.pago ? (
+                              <Tag color="success" icon={<CheckCircleOutlined />}>Paga</Tag>
+                            ) : (
+                              <Tag color="warning" icon={<ClockCircleOutlined />}>Aberta</Tag>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </Col>
 
@@ -144,59 +177,105 @@ export default function FaturasSection() {
                       </div>
                     </div>
 
-                    {/* Tabela de lançamentos da fatura */}
-                    <Table
-                      size="small"
-                      dataSource={faturaDetalhada.transacoes || []}
-                      rowKey="id"
-                      pagination={false}
-                      columns={[
-                        {
-                          title: 'Data',
-                          dataIndex: 'data',
-                          key: 'data',
-                          render: (val) => formatDataBr(val),
-                          width: 105,
-                        },
-                        {
-                          title: 'Descrição',
-                          dataIndex: 'descricao',
-                          key: 'descricao',
-                          render: (val, record) => (
-                            <div>
-                              <span>{val || 'Sem descrição'}</span>
-                              {record.total_parcelas > 1 && (
-                                <Tag color="purple" style={{ marginLeft: 6 }}>
-                                  {record.parcela_atual}/{record.total_parcelas}
-                                </Tag>
-                              )}
-                            </div>
-                          ),
-                        },
-                        {
-                          title: 'Categoria',
-                          dataIndex: 'categoria_nome',
-                          key: 'categoria_nome',
-                          render: (val, record) =>
-                            val ? (
-                              <Tag color={record.categoria_cor || 'blue'}>{val}</Tag>
-                            ) : (
-                              <Text type="secondary">-</Text>
+                    {/* Tabela de lançamentos da fatura (Desktop) */}
+                    <div className="faturas-desktop-table">
+                      <Table
+                        size="small"
+                        dataSource={faturaDetalhada.transacoes || []}
+                        rowKey="id"
+                        pagination={false}
+                        columns={[
+                          {
+                            title: 'Data',
+                            dataIndex: 'data',
+                            key: 'data',
+                            render: (val) => formatDataBr(val),
+                            width: 105,
+                          },
+                          {
+                            title: 'Descrição',
+                            dataIndex: 'descricao',
+                            key: 'descricao',
+                            render: (val, record) => (
+                              <div>
+                                <span>{val || 'Sem descrição'}</span>
+                                {record.total_parcelas > 1 && (
+                                  <Tag color="purple" style={{ marginLeft: 6 }}>
+                                    {record.parcela_atual}/{record.total_parcelas}
+                                  </Tag>
+                                )}
+                              </div>
                             ),
-                        },
-                        {
-                          title: 'Valor',
-                          dataIndex: 'valor',
-                          key: 'valor',
-                          align: 'right',
-                          render: (val) => (
-                            <span style={{ fontWeight: 600, color: '#dc2626' }}>
-                              {formatCurrency(val)}
-                            </span>
-                          ),
-                        },
-                      ]}
-                    />
+                          },
+                          {
+                            title: 'Categoria',
+                            dataIndex: 'categoria_nome',
+                            key: 'categoria_nome',
+                            render: (val, record) =>
+                              val ? (
+                                <Tag color={record.categoria_cor || 'blue'}>{val}</Tag>
+                              ) : (
+                                <Text type="secondary">-</Text>
+                              ),
+                          },
+                          {
+                            title: 'Valor',
+                            dataIndex: 'valor',
+                            key: 'valor',
+                            align: 'right',
+                            render: (val) => (
+                              <span style={{ fontWeight: 600, color: '#dc2626' }}>
+                                {formatCurrency(val)}
+                              </span>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+
+                    {/* Cards de lançamentos da fatura (Mobile) */}
+                    <div className="faturas-mobile-cards">
+                      {faturaDetalhada.transacoes && faturaDetalhada.transacoes.length > 0 ? (
+                        faturaDetalhada.transacoes.map((item) => (
+                          <div key={item.id} className="fatura-item-mobile">
+                            <div className="fatura-item-left">
+                              <div className="fatura-item-desc">
+                                <span>{item.descricao || 'Sem descrição'}</span>
+                                {item.total_parcelas > 1 && (
+                                  <span className="fatura-item-parcela">
+                                    {item.parcela_atual}/{item.total_parcelas}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="fatura-item-meta">
+                                {item.categoria_nome && (
+                                  <span className="fatura-item-category">
+                                    <span
+                                      style={{
+                                        display: 'inline-block',
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: '50%',
+                                        background: item.categoria_cor || '#6366f1',
+                                      }}
+                                    />
+                                    {item.categoria_nome}
+                                  </span>
+                                )}
+                                <span className="fatura-item-date">{formatDataBr(item.data)}</span>
+                              </div>
+                            </div>
+                            <div className="fatura-item-right">
+                              <span className="fatura-item-valor">{formatCurrency(item.valor)}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                          Nenhum lançamento nesta fatura.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <EmptyState description="Selecione uma fatura para ver os detalhes." />

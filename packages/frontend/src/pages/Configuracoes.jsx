@@ -318,7 +318,7 @@ function Configuracoes() {
       </div>
 
 
-      <div className="card" style={{ marginTop: 24 }}>
+      <div className="card" style={{ marginTop: 12 }}>
         <h3 style={{ marginBottom: 16 }}>🔒 Privacidade e Dados (LGPD)</h3>
         <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
           <p style={{ marginBottom: 16 }}>

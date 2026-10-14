@@ -176,21 +176,21 @@ function Dashboard() {
         >
           <div className="stat-header">
             <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CreditCardOutlined style={{ color: '#818cf8' }} /> Faturas do Mês
+              <CreditCardOutlined style={{ color: '#818cf8' }} /> Faturas
             </span>
             <RightOutlined style={{ fontSize: 11, color: 'var(--text-muted)' }} />
           </div>
           <div className="stat-value" style={{ color: '#818cf8' }}>
             {formatCurrency(estatisticas.faturasMes?.total || 0)}
           </div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {estatisticas.faturasMes?.qtd === 0 ? (
-              <span style={{ color: 'var(--text-muted)' }}>Sem faturas neste mês</span>
+              <span style={{ color: 'var(--text-muted)' }}>Sem faturas</span>
             ) : estatisticas.faturasMes?.todasPagas ? (
-              <span style={{ color: '#10b981', fontWeight: 500 }}>✓ Faturas pagas</span>
+              <span style={{ color: '#10b981', fontWeight: 500 }}>✓ Pagas</span>
             ) : (
               <span style={{ color: '#ef4444', fontWeight: 500 }}>
-                {formatCurrency(estatisticas.faturasMes?.totalAbertas || 0)} pendente
+                {formatCurrency(estatisticas.faturasMes?.totalAbertas || 0)} aberta
               </span>
             )}
           </div>
@@ -205,33 +205,21 @@ function Dashboard() {
         >
           <div className="stat-header">
             <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CreditCardOutlined style={{ color: '#38bdf8' }} /> Limite dos Cartões
+              <CreditCardOutlined style={{ color: '#38bdf8' }} /> Limite Livre
             </span>
             <RightOutlined style={{ fontSize: 11, color: 'var(--text-muted)' }} />
           </div>
           <div className="stat-value positive">
             {formatCurrency(estatisticas.limitesCartoes?.limiteDisponivel || 0)}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
-            livre de {formatCurrency(estatisticas.limitesCartoes?.limiteTotal || 0)}
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            de {formatCurrency(estatisticas.limitesCartoes?.limiteTotal || 0)} total
           </div>
-          {estatisticas.limitesCartoes?.limiteTotal > 0 && (
-            <div style={{ width: '100%', height: 4, background: 'var(--border-color)', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${estatisticas.limitesCartoes.percentualUsado}%`,
-                  height: '100%',
-                  background: estatisticas.limitesCartoes.percentualUsado > 80 ? '#ef4444' : '#6366f1',
-                  borderRadius: 2
-                }}
-              />
-            </div>
-          )}
         </div>
       </div>
 
       {/* Gráfico de Projeção de Faturas Futuras */}
-      <div className="card" style={{ marginTop: 20 }}>
+      <div className="card" style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -292,7 +280,7 @@ function Dashboard() {
         )}
       </div>
 
-      <div className="dashboard-charts" style={{ marginTop: 20 }}>
+      <div className="dashboard-charts" style={{ marginTop: 12 }}>
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>Gastos por Categoria</h3>
           {porCategoria.length > 0 ? (
@@ -395,7 +383,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 20 }}>
+      <div className="card" style={{ marginTop: 12 }}>
         <h3 style={{ marginBottom: 16 }}>Previsão Mensal</h3>
         {previsoesList.length > 0 ? (
           <ResponsiveContainer width="100%" height={260}>
