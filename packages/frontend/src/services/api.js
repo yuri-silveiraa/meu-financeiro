@@ -39,7 +39,10 @@ export const api = {
 
   // Transações
   getTransacoes: (params = {}) => {
-    const query = new URLSearchParams(params).toString();
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const query = new URLSearchParams(cleanParams).toString();
     return request(`/api/transacoes${query ? `?${query}` : ''}`);
   },
   addTransacao: (data) => request('/api/transacoes', { method: 'POST', body: JSON.stringify(data) }),

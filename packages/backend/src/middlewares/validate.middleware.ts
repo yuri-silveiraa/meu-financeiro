@@ -22,6 +22,7 @@ export function validate(schemas: ValidateSchemaOptions) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        console.warn(`[Validation Error] ${req.method} ${req.originalUrl}:`, error.issues);
         res.status(400).json({
           error: 'Dados inválidos',
           issues: error.issues.map((i) => ({
