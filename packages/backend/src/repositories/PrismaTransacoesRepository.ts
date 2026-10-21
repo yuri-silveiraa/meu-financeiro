@@ -9,10 +9,21 @@ import { AppError } from '../errors/AppError.js';
 
 export class PrismaTransacoesRepository implements ITransacoesRepository {
   async findManyWithFilters(userId: number, filters: TransacaoFiltersDTO, limit: number): Promise<TransacaoWithRelations[]> {
+    const dataFilter: Prisma.DateTimeFilter = {};
+    if (filters.dataInicio) {
+      dataFilter.gte = new Date(
+        filters.dataInicio.includes('T') ? filters.dataInicio : `${filters.dataInicio}T00:00:00.000Z`
+      );
+    }
+    if (filters.dataFim) {
+      dataFilter.lte = new Date(
+        filters.dataFim.includes('T') ? filters.dataFim : `${filters.dataFim}T23:59:59.999Z`
+      );
+    }
+
     const where: Prisma.TransacaoWhereInput = {
       userId,
-      ...(filters.dataInicio ? { data: { gte: new Date(filters.dataInicio) } } : {}),
-      ...(filters.dataFim ? { data: { lte: new Date(filters.dataFim) } } : {}),
+      ...(filters.dataInicio || filters.dataFim ? { data: dataFilter } : {}),
       ...(filters.categoriaId ? { categoriaId: filters.categoriaId } : {}),
       ...(filters.contaId ? { contaId: filters.contaId } : {}),
       ...(filters.cartaoId ? { cartaoId: filters.cartaoId } : {}),
