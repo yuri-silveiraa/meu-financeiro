@@ -52,7 +52,6 @@ const GastoFixoCard = ({ gasto, onEdit, onDelete }) => {
             {gasto.cartao_nome ? (
               <span className="tx-badge-card">
                 💳 {gasto.cartao_nome}
-                {gasto.total_parcelas > 1 ? ` (${gasto.parcela_atual}/${gasto.total_parcelas})` : ''}
               </span>
             ) : gasto.conta_nome ? (
               <span className="tx-badge-account">

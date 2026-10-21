@@ -32,6 +32,21 @@ export class PrismaGastosFixosRepository implements IGastosFixosRepository {
     });
   }
 
+  async findAtivos(userId: number): Promise<GastoFixoWithRelations[]> {
+    return prisma.gastoFixo.findMany({
+      where: {
+        userId,
+        ativo: true,
+      },
+      include: {
+        categoria: true,
+        conta: true,
+        cartao: true,
+      },
+      orderBy: { diaVencimento: 'asc' },
+    });
+  }
+
   async findAtivosComParcelas(userId: number): Promise<GastoFixoWithRelations[]> {
     return prisma.gastoFixo.findMany({
       where: {
@@ -45,6 +60,41 @@ export class PrismaGastosFixosRepository implements IGastosFixosRepository {
         cartao: true,
       },
     });
+  }
+
+  async existeTransacaoNoMes(gastoFixoId: number, userId: number, ano: number, mes: number, isCartao: boolean): Promise<boolean> {
+    const inicioMes = new Date(Date.UTC(ano, mes - 1, 1));
+    const fimMes = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
+    const count = await prisma.transacao.count({
+      where: {
+        gastoFixoId,
+        userId,
+        OR: isCartao
+          ? [
+              { faturaAno: ano, faturaMes: mes },
+              { data: { gte: inicioMes, lte: fimMes } },
+            ]
+          : [{ data: { gte: inicioMes, lte: fimMes } }],
+      },
+    });
+    return count > 0;
+  }
+
+  async deleteTransacoesFuturasNaoPagas(userId: number, ano: number, mes: number): Promise<number> {
+    const fimMesAtual = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
+    const result = await prisma.transacao.deleteMany({
+      where: {
+        userId,
+        gastoFixoId: { not: null },
+        pago: false,
+        OR: [
+          { faturaAno: { gt: ano } },
+          { faturaAno: ano, faturaMes: { gt: mes } },
+          { data: { gt: fimMesAtual } },
+        ],
+      },
+    });
+    return result.count;
   }
 
   async getTransacoesStats(gastoFixoId: number, userId: number): Promise<TransacaoStats> {

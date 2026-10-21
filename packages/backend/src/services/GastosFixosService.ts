@@ -1,5 +1,6 @@
 import type {
   IGastosFixosRepository,
+  GastoFixoWithRelations,
   NovaTransacaoLote,
 } from '../types/repositories/IGastosFixosRepository.js';
 import type { IGastosFixosService } from '../types/services/IGastosFixosService.js';
@@ -10,6 +11,7 @@ import type {
 } from '../types/dtos/gastoFixo.dto.js';
 import { GastoFixoMapper } from '../mappers/GastoFixoMapper.js';
 import { AppError } from '../errors/AppError.js';
+import { calcularFaturaEVencimento } from '../utils/fatura.js';
 
 function lastDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
@@ -19,7 +21,7 @@ export class GastosFixosService implements IGastosFixosService {
   constructor(private readonly repo: IGastosFixosRepository) {}
 
   async list(userId: number): Promise<GastoFixoResponseDTO[]> {
-    await this.sincronizarParcelas(userId);
+    await this.sincronizarGastosFixos(userId);
     const list = await this.repo.findByUserId(userId);
     return GastoFixoMapper.toDTOList(list);
   }
@@ -30,6 +32,45 @@ export class GastosFixosService implements IGastosFixosService {
       throw new AppError('Gasto fixo não encontrado', 404);
     }
     return GastoFixoMapper.toDTO(gf);
+  }
+
+  private gerarTransacaoMes(gf: GastoFixoWithRelations, ano: number, mes: number): NovaTransacaoLote {
+    const effectiveDay = Math.min(gf.diaVencimento, lastDayOfMonth(ano, mes));
+    const dataTransacao = new Date(Date.UTC(ano, mes - 1, effectiveDay));
+
+    let faturaMes: number | null = null;
+    let faturaAno: number | null = null;
+    let dataFinal = dataTransacao;
+
+    if (gf.tipoPagamento === 'credito' && gf.cartao) {
+      const dataCompraStr = `${ano}-${String(mes).padStart(2, '0')}-${String(effectiveDay).padStart(2, '0')}`;
+      const faturaInfo = calcularFaturaEVencimento(
+        dataCompraStr,
+        gf.cartao.diaFechamento,
+        gf.cartao.diaVencimento
+      );
+      faturaMes = faturaInfo.fatura_mes;
+      faturaAno = faturaInfo.fatura_ano;
+      dataFinal = new Date(faturaInfo.data_vencimento);
+    }
+
+    return {
+      userId: gf.userId,
+      data: dataFinal,
+      descricao: gf.nome.trim(),
+      valor: Number(gf.valor),
+      tipo: gf.tipo || 'despesa',
+      tipoPagamento: gf.tipoPagamento || 'pix',
+      categoriaId: gf.categoriaId,
+      contaId: gf.contaId,
+      cartaoId: gf.cartaoId,
+      pago: false,
+      gastoFixoId: gf.id,
+      parcelaAtual: null,
+      totalParcelas: 1,
+      faturaMes,
+      faturaAno,
+    };
   }
 
   async create(userId: number, data: CreateGastoFixoDTO): Promise<GastoFixoResponseDTO & { transacoesCriadas: number }> {
@@ -45,7 +86,7 @@ export class GastosFixosService implements IGastosFixosService {
       categoriaId: data.categoria_id || null,
       contaId: data.conta_id || null,
       cartaoId: data.cartao_id || null,
-      totalParcelas: data.total_parcelas || null,
+      totalParcelas: null,
       tipo: tipoFinal,
       dataCriacao: new Date(),
     });
@@ -53,41 +94,10 @@ export class GastosFixosService implements IGastosFixosService {
     const hoje = new Date();
     const currAno = hoje.getFullYear();
     const currMes = hoje.getMonth() + 1;
-    const qtdParaGerar = data.total_parcelas ? data.total_parcelas : 12;
 
-    const transacoes: NovaTransacaoLote[] = [];
-
-    for (let i = 0; i < qtdParaGerar; i++) {
-      let m = currMes + i;
-      let a = currAno;
-      while (m > 12) {
-        m -= 12;
-        a += 1;
-      }
-
-      const effectiveDay = Math.min(diaVencimentoFinal, lastDayOfMonth(a, m));
-      const dataTransacao = new Date(Date.UTC(a, m - 1, effectiveDay));
-
-      transacoes.push({
-        userId,
-        data: dataTransacao,
-        descricao: data.nome.trim(),
-        valor: data.valor,
-        tipo: tipoFinal,
-        tipoPagamento: data.tipo_pagamento || 'pix',
-        categoriaId: data.categoria_id || null,
-        contaId: data.conta_id || null,
-        cartaoId: data.cartao_id || null,
-        pago: false,
-        gastoFixoId: created.id,
-        parcelaAtual: data.total_parcelas ? i + 1 : null,
-        totalParcelas: data.total_parcelas || 1,
-        faturaMes: data.cartao_id ? m : null,
-        faturaAno: data.cartao_id ? a : null,
-      });
-    }
-
-    const transacoesCriadas = await this.repo.createTransacoesLote(transacoes);
+    // Gera apenas 1 transação (do mês atual) para não comprometer limites futuros
+    const transacao = this.gerarTransacaoMes(created, currAno, currMes);
+    const transacoesCriadas = await this.repo.createTransacoesLote([transacao]);
 
     return {
       ...GastoFixoMapper.toDTO(created),
@@ -109,7 +119,7 @@ export class GastosFixosService implements IGastosFixosService {
       ...(data.categoria_id !== undefined ? { categoriaId: data.categoria_id } : {}),
       ...(data.conta_id !== undefined ? { contaId: data.conta_id } : {}),
       ...(data.cartao_id !== undefined ? { cartaoId: data.cartao_id } : {}),
-      ...(data.total_parcelas !== undefined ? { totalParcelas: data.total_parcelas } : {}),
+      totalParcelas: null,
       ...(data.tipo !== undefined ? { tipo: data.tipo } : {}),
     });
 
@@ -124,61 +134,8 @@ export class GastosFixosService implements IGastosFixosService {
       ...(data.cartao_id !== undefined ? { cartaoId: data.cartao_id } : {}),
     });
 
-    // Se possui total_parcelas, verifica se faltam parcelas para gerar
-    if (data.total_parcelas) {
-      const stats = await this.repo.getTransacoesStats(id, userId);
-      const faltam = data.total_parcelas - stats.pagasCount - stats.naoPagasCount;
-
-      if (faltam > 0) {
-        const parcelaBase = stats.maxParcela ? stats.maxParcela + 1 : stats.pagasCount + stats.naoPagasCount + 1;
-        const lastDate = stats.maxData ? new Date(stats.maxData) : new Date();
-
-        let currMes = lastDate.getUTCMonth() + 1;
-        let currAno = lastDate.getUTCFullYear();
-
-        if (stats.maxData) {
-          currMes += 1;
-          if (currMes > 12) {
-            currMes = 1;
-            currAno += 1;
-          }
-        }
-
-        const diaVenc = data.dia_vencimento || existing.diaVencimento;
-        const novasTransacoes: NovaTransacaoLote[] = [];
-
-        for (let i = 0; i < faltam; i++) {
-          const effectiveDay = Math.min(diaVenc, lastDayOfMonth(currAno, currMes));
-          const dataTransacao = new Date(Date.UTC(currAno, currMes - 1, effectiveDay));
-
-          novasTransacoes.push({
-            userId,
-            data: dataTransacao,
-            descricao: data.nome?.trim() || existing.nome,
-            valor: data.valor !== undefined ? data.valor : Number(existing.valor),
-            tipo: data.tipo || existing.tipo || 'despesa',
-            tipoPagamento: data.tipo_pagamento || existing.tipoPagamento || 'pix',
-            categoriaId: data.categoria_id !== undefined ? data.categoria_id : existing.categoriaId,
-            contaId: data.conta_id !== undefined ? data.conta_id : existing.contaId,
-            cartaoId: data.cartao_id !== undefined ? data.cartao_id : existing.cartaoId,
-            pago: false,
-            gastoFixoId: id,
-            parcelaAtual: parcelaBase + i,
-            totalParcelas: data.total_parcelas,
-            faturaMes: (data.cartao_id !== undefined ? data.cartao_id : existing.cartaoId) ? currMes : null,
-            faturaAno: (data.cartao_id !== undefined ? data.cartao_id : existing.cartaoId) ? currAno : null,
-          });
-
-          currMes += 1;
-          if (currMes > 12) {
-            currMes = 1;
-            currAno += 1;
-          }
-        }
-
-        await this.repo.createTransacoesLote(novasTransacoes);
-      }
-    }
+    const hoje = new Date();
+    await this.repo.deleteTransacoesFuturasNaoPagas(userId, hoje.getFullYear(), hoje.getMonth() + 1);
 
     return GastoFixoMapper.toDTO(updated);
   }
@@ -191,74 +148,43 @@ export class GastosFixosService implements IGastosFixosService {
     await this.repo.softDelete(id, userId);
   }
 
-  async sincronizarParcelas(userId: number): Promise<void> {
+  async sincronizarGastosFixos(userId: number): Promise<void> {
     if (!userId) return;
 
     try {
-      const ativos = await this.repo.findAtivosComParcelas(userId);
+      const hoje = new Date();
+      const currAno = hoje.getFullYear();
+      const currMes = hoje.getMonth() + 1;
+
+      // 1. Limpa transações não pagas de meses futuros para liberar o limite do cartão
+      await this.repo.deleteTransacoesFuturasNaoPagas(userId, currAno, currMes);
+
+      // 2. Busca todos os gastos fixos ativos
+      const ativos = await this.repo.findAtivos(userId);
+
+      // 3. Garante que cada gasto fixo ativo tenha exatamente uma transação no mês corrente
+      const novasTransacoes: NovaTransacaoLote[] = [];
 
       for (const gf of ativos) {
-        if (!gf.totalParcelas) continue;
+        const isCartao = gf.tipoPagamento === 'credito' && Boolean(gf.cartaoId);
+        const jaExiste = await this.repo.existeTransacaoNoMes(gf.id, userId, currAno, currMes, isCartao);
 
-        const stats = await this.repo.getTransacoesStats(gf.id, userId);
-        const faltam = gf.totalParcelas - stats.count;
-
-        if (faltam > 0) {
-          const maxParcela = stats.maxParcela ? stats.maxParcela : stats.count;
-          const lastDate = stats.maxData ? new Date(stats.maxData) : (gf.dataCriacao ? new Date(gf.dataCriacao) : new Date());
-
-          let currMes = lastDate.getUTCMonth() + 1;
-          let currAno = lastDate.getUTCFullYear();
-
-          if (stats.maxData) {
-            currMes += 1;
-            if (currMes > 12) {
-              currMes = 1;
-              currAno += 1;
-            }
-          }
-
-          const diaVenc = (gf.tipoPagamento === 'credito' && gf.cartao?.diaVencimento)
-            ? gf.cartao.diaVencimento
-            : gf.diaVencimento;
-
-          const novasTransacoes: NovaTransacaoLote[] = [];
-
-          for (let i = 0; i < faltam; i++) {
-            const pAtual = maxParcela + 1 + i;
-            const effectiveDay = Math.min(diaVenc, lastDayOfMonth(currAno, currMes));
-            const dataTransacao = new Date(Date.UTC(currAno, currMes - 1, effectiveDay));
-
-            novasTransacoes.push({
-              userId,
-              data: dataTransacao,
-              descricao: gf.nome,
-              valor: Number(gf.valor),
-              tipo: gf.tipo || 'despesa',
-              tipoPagamento: gf.tipoPagamento || 'pix',
-              categoriaId: gf.categoriaId,
-              contaId: gf.contaId,
-              cartaoId: gf.cartaoId,
-              pago: false,
-              gastoFixoId: gf.id,
-              parcelaAtual: pAtual,
-              totalParcelas: gf.totalParcelas,
-              faturaMes: gf.cartaoId ? currMes : null,
-              faturaAno: gf.cartaoId ? currAno : null,
-            });
-
-            currMes += 1;
-            if (currMes > 12) {
-              currMes = 1;
-              currAno += 1;
-            }
-          }
-
-          await this.repo.createTransacoesLote(novasTransacoes);
+        if (!jaExiste) {
+          const t = this.gerarTransacaoMes(gf, currAno, currMes);
+          novasTransacoes.push(t);
         }
       }
+
+      if (novasTransacoes.length > 0) {
+        await this.repo.createTransacoesLote(novasTransacoes);
+      }
     } catch (err) {
-      console.error('Erro ao sincronizar parcelas de gastos fixos:', err);
+      console.error('Erro ao sincronizar gastos fixos:', err);
     }
+  }
+
+  // Alias para manter compatibilidade com interface
+  async sincronizarParcelas(userId: number): Promise<void> {
+    return this.sincronizarGastosFixos(userId);
   }
 }

@@ -16,7 +16,6 @@ const initialForm = () => ({
   categoria_id: '',
   conta_id: '',
   cartao_id: '',
-  total_parcelas: ''
 });
 
 function GastosFixos() {
@@ -80,7 +79,6 @@ function GastosFixos() {
       categoria_id: gasto.categoria_id || '',
       conta_id: gasto.conta_id || '',
       cartao_id: gasto.cartao_id ? gasto.cartao_id.toString() : '',
-      total_parcelas: gasto.total_parcelas?.toString() || ''
     });
     setShowModal(true);
   }, []);
@@ -132,15 +130,6 @@ function GastosFixos() {
         headerName: 'Vencimento',
         width: 126,
         valueFormatter: (params) => `Dia ${params.value}`
-      },
-      {
-        field: 'total_parcelas',
-        headerName: 'Parcelas',
-        width: 120,
-        cellRenderer: (params) => {
-          if (!params.value) return <span className="muted-cell">Recorrente</span>;
-          return <span>{params.value}x</span>;
-        }
       },
       {
         field: 'tipo_pagamento',
@@ -247,7 +236,7 @@ function GastosFixos() {
       valor: parseFloat(form.valor),
       dia_vencimento: diaVencimento,
       tipo: form.tipo || 'despesa',
-      total_parcelas: form.total_parcelas ? parseInt(form.total_parcelas, 10) : null,
+      total_parcelas: null,
       conta_id: form.tipo_pagamento === 'credito' ? null : (form.conta_id || null),
       cartao_id: form.tipo_pagamento === 'credito' && form.cartao_id ? parseInt(form.cartao_id, 10) : null,
       categoria_id: form.categoria_id || null
@@ -258,9 +247,9 @@ function GastosFixos() {
         await api.updateGastoFixo(editando.id, dados);
         message.success('Item fixo atualizado com sucesso');
       } else {
-        const result = await api.addGastoFixo(dados);
+        await api.addGastoFixo(dados);
         const label = dados.tipo === 'receita' ? 'Receita fixa' : 'Gasto fixo';
-        message.success(`${label} criado(a)! ${result.transacoesCriadas} transações geradas.`);
+        message.success(`${label} criado(a) com sucesso!`);
       }
 
       setShowModal(false);
@@ -549,44 +538,27 @@ function GastosFixos() {
               </div>
             )}
 
-            <div className="form-row-compact">
+            <div className="form-group-compact">
+              <label className="form-label-compact">Dia do Vencimento</label>
               {!isCredito ? (
-                <div className="form-group-compact">
-                  <label className="form-label-compact">Dia do Vencimento</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={form.dia_vencimento}
-                    onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
-                    className="form-input-compact"
-                    placeholder="Ex: 10"
-                    required
-                  />
-                </div>
-              ) : (
-                <div className="form-group-compact">
-                  <label className="form-label-compact">Dia do Vencimento</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={selectedCartao ? `Dia ${selectedCartao.dia_vencimento} (Cartão)` : 'Dia do cartão'}
-                    className="form-input-compact"
-                  />
-                </div>
-              )}
-
-              <div className="form-group-compact">
-                <label className="form-label-compact">Parcelas (Vazio = Fixo)</label>
                 <input
                   type="number"
                   min="1"
-                  value={form.total_parcelas}
-                  onChange={(e) => setForm({ ...form, total_parcelas: e.target.value })}
+                  max="31"
+                  value={form.dia_vencimento}
+                  onChange={(e) => setForm({ ...form, dia_vencimento: e.target.value })}
                   className="form-input-compact"
-                  placeholder="Recorrente"
+                  placeholder="Ex: 10"
+                  required
                 />
-              </div>
+              ) : (
+                <input
+                  type="text"
+                  disabled
+                  value={selectedCartao ? `Dia ${selectedCartao.dia_vencimento} (Vencimento do Cartão)` : 'Dia do cartão'}
+                  className="form-input-compact"
+                />
+              )}
             </div>
           </div>
 

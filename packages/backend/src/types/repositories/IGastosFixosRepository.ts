@@ -61,8 +61,11 @@ export interface NovaTransacaoLote {
 export interface IGastosFixosRepository {
   findByUserId(userId: number): Promise<GastoFixoWithRelations[]>;
   findById(id: number, userId: number): Promise<GastoFixoWithRelations | null>;
+  findAtivos(userId: number): Promise<GastoFixoWithRelations[]>;
   findAtivosComParcelas(userId: number): Promise<GastoFixoWithRelations[]>;
   getTransacoesStats(gastoFixoId: number, userId: number): Promise<TransacaoStats>;
+  existeTransacaoNoMes(gastoFixoId: number, userId: number, ano: number, mes: number, isCartao: boolean): Promise<boolean>;
+  deleteTransacoesFuturasNaoPagas(userId: number, ano: number, mes: number): Promise<number>;
   create(data: CreateGastoFixoData): Promise<GastoFixoWithRelations>;
   update(id: number, userId: number, data: UpdateGastoFixoData): Promise<GastoFixoWithRelations>;
   updateTransacoesNaoPagas(gastoFixoId: number, userId: number, data: Partial<NovaTransacaoLote>): Promise<number>;
