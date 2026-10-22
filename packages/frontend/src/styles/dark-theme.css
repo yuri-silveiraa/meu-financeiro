@@ -1,0 +1,203 @@
+/* =========================================================
+   MODO ESCURO: OVERRIDES GLOBAIS DE ALTO CONTRASTE
+   ========================================================= */
+[data-theme='dark'] .tx-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .tx-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+[data-theme='dark'] .tx-card.tx-card-paid {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+[data-theme='dark'] .tx-card.tx-card-unpaid {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+[data-theme='dark'] .tx-desc {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .tx-valor.receita,
+[data-theme='dark'] .stat-value.positive,
+[data-theme='dark'] .money-cell.income {
+  color: #4ade80 !important;
+}
+
+[data-theme='dark'] .tx-valor.despesa,
+[data-theme='dark'] .stat-value.negative,
+[data-theme='dark'] .money-cell.expense {
+  color: #f87171 !important;
+}
+
+[data-theme='dark'] .status-pill.is-paid {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+[data-theme='dark'] .status-pill.is-unpaid {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+[data-theme='dark'] .meta-status-pill.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+[data-theme='dark'] .meta-status-pill.completed {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+[data-theme='dark'] .meta-status-pill.expired {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+[data-theme='dark'] .meta-deadline-pill.expired {
+  color: #f87171;
+}
+
+[data-theme='dark'] .btn-secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .btn-secondary:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+[data-theme='dark'] .checkbox-card {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .settings-row {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .settings-row-description {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .transacao-row {
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .transacao-row:hover {
+  background: var(--bg-card-hover);
+}
+
+[data-theme='dark'] .nav-arrow {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .nav-arrow:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+[data-theme='dark'] .tipo-badge.credito {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .tipo-badge.debito {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+[data-theme='dark'] .tipo-badge.pix {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .tipo-badge.dinheiro {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+
+[data-theme='dark'] .tipo-badge.boleto {
+  background: rgba(139, 92, 246, 0.18);
+  color: #c084fc;
+}
+
+[data-theme='dark'] .tipo-badge.parcela {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+}
+
+[data-theme='dark'] .tipo-badge.recorrente {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+[data-theme='dark'] .btn-marcar-todas.pago {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme='dark'] .btn-marcar-todas.pago:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+[data-theme='dark'] .btn-marcar-todas.aberto {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+[data-theme='dark'] .btn-marcar-todas.aberto:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+[data-theme='dark'] .badge-pendentes {
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .badge-todas-concluidas {
+  color: #34d399;
+}
+
+[data-theme='dark'] .btn-sub-toggle-all.is-pendente {
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+[data-theme='dark'] .btn-sub-toggle-all.is-pendente:hover {
+  background: rgba(16, 185, 129, 0.22);
+}
+
+[data-theme='dark'] .btn-sub-toggle-all.is-concluida {
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .btn-sub-toggle-all.is-concluida:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
