@@ -35,6 +35,7 @@ export class PrismaCartoesRepository implements ICartoesRepository {
         userId,
         tipo: 'despesa',
         pago: false,
+        gastoFixoId: null,
       },
       _sum: {
         valor: true,

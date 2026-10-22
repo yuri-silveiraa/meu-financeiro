@@ -21,13 +21,13 @@ describe('GastosFixosService', () => {
       update: vi.fn(),
       updateTransacoesNaoPagas: vi.fn(),
       deleteTransacoesNaoPagas: vi.fn(),
-      createTransacoesLote: vi.fn().mockResolvedValue(1),
+      createTransacoesLote: vi.fn().mockResolvedValue(12),
       softDelete: vi.fn(),
     };
     service = new GastosFixosService(mockRepo);
   });
 
-  it('cria gasto fixo recorrente gerando apenas 1 transação para o mês atual sem parcelas futuras', async () => {
+  it('cria gasto fixo recorrente gerando 12 transações mensais para planejamento futuro', async () => {
     const fakeCreated: GastoFixoWithRelations = {
       id: 1,
       userId: 10,
@@ -48,7 +48,7 @@ describe('GastosFixosService', () => {
     };
 
     vi.mocked(mockRepo.create).mockResolvedValue(fakeCreated);
-    vi.mocked(mockRepo.createTransacoesLote).mockResolvedValue(1);
+    vi.mocked(mockRepo.createTransacoesLote).mockResolvedValue(12);
 
     const result = await service.create(10, {
       nome: 'Aluguel',
@@ -65,7 +65,9 @@ describe('GastosFixosService', () => {
       })
     );
     expect(mockRepo.createTransacoesLote).toHaveBeenCalledTimes(1);
-    expect(mockRepo.createTransacoesLote).toHaveBeenCalledWith([
+    const transacoesLote = vi.mocked(mockRepo.createTransacoesLote).mock.calls[0][0];
+    expect(transacoesLote).toHaveLength(12);
+    expect(transacoesLote[0]).toEqual(
       expect.objectContaining({
         descricao: 'Aluguel',
         valor: 2500,
@@ -73,13 +75,13 @@ describe('GastosFixosService', () => {
         gastoFixoId: 1,
         parcelaAtual: null,
         totalParcelas: 1,
-      }),
-    ]);
+      })
+    );
     expect(result.id).toBe(1);
-    expect(result.transacoesCriadas).toBe(1);
+    expect(result.transacoesCriadas).toBe(12);
   });
 
-  it('cria gasto fixo no cartão calculando fatura e vencimento sem parcelas', async () => {
+  it('cria gasto fixo no cartão gerando 12 meses com fatura calculada', async () => {
     const fakeCartao = {
       id: 5,
       userId: 10,
@@ -112,7 +114,7 @@ describe('GastosFixosService', () => {
     };
 
     vi.mocked(mockRepo.create).mockResolvedValue(fakeCreated);
-    vi.mocked(mockRepo.createTransacoesLote).mockResolvedValue(1);
+    vi.mocked(mockRepo.createTransacoesLote).mockResolvedValue(12);
 
     const result = await service.create(10, {
       nome: 'Netflix',
@@ -122,7 +124,9 @@ describe('GastosFixosService', () => {
       cartao_id: 5,
     });
 
-    expect(mockRepo.createTransacoesLote).toHaveBeenCalledWith([
+    const transacoesLote = vi.mocked(mockRepo.createTransacoesLote).mock.calls[0][0];
+    expect(transacoesLote).toHaveLength(12);
+    expect(transacoesLote[0]).toEqual(
       expect.objectContaining({
         descricao: 'Netflix',
         valor: 55.9,
@@ -132,13 +136,13 @@ describe('GastosFixosService', () => {
         parcelaAtual: null,
         faturaMes: expect.any(Number),
         faturaAno: expect.any(Number),
-      }),
-    ]);
+      })
+    );
     expect(result.id).toBe(2);
-    expect(result.transacoesCriadas).toBe(1);
+    expect(result.transacoesCriadas).toBe(12);
   });
 
-  it('sincronizarGastosFixos limpa transações futuras não pagas e garante transação do mês atual', async () => {
+  it('sincronizarGastosFixos garante horizonte de 12 meses para gastos fixos ativos', async () => {
     const fakeGf: GastoFixoWithRelations = {
       id: 3,
       userId: 10,
@@ -163,14 +167,9 @@ describe('GastosFixosService', () => {
 
     await service.sincronizarGastosFixos(10);
 
-    expect(mockRepo.deleteTransacoesFuturasNaoPagas).toHaveBeenCalledWith(10, expect.any(Number), expect.any(Number));
-    expect(mockRepo.createTransacoesLote).toHaveBeenCalledWith([
-      expect.objectContaining({
-        descricao: 'Internet',
-        valor: 120,
-        gastoFixoId: 3,
-      }),
-    ]);
+    expect(mockRepo.createTransacoesLote).toHaveBeenCalledTimes(1);
+    const transacoesLote = vi.mocked(mockRepo.createTransacoesLote).mock.calls[0][0];
+    expect(transacoesLote).toHaveLength(12);
   });
 
   it('lança AppError 404 ao tentar atualizar gasto fixo inexistente', async () => {

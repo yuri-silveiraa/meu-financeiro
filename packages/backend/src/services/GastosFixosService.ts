@@ -95,9 +95,19 @@ export class GastosFixosService implements IGastosFixosService {
     const currAno = hoje.getFullYear();
     const currMes = hoje.getMonth() + 1;
 
-    // Gera apenas 1 transação (do mês atual) para não comprometer limites futuros
-    const transacao = this.gerarTransacaoMes(created, currAno, currMes);
-    const transacoesCriadas = await this.repo.createTransacoesLote([transacao]);
+    // Gera transações mensais para um horizonte de 12 meses (para visualização e planejamento futuro)
+    const transacoes: NovaTransacaoLote[] = [];
+    for (let i = 0; i < 12; i++) {
+      let m = currMes + i;
+      let a = currAno;
+      while (m > 12) {
+        m -= 12;
+        a += 1;
+      }
+      transacoes.push(this.gerarTransacaoMes(created, a, m));
+    }
+
+    const transacoesCriadas = await this.repo.createTransacoesLote(transacoes);
 
     return {
       ...GastoFixoMapper.toDTO(created),
@@ -134,9 +144,6 @@ export class GastosFixosService implements IGastosFixosService {
       ...(data.cartao_id !== undefined ? { cartaoId: data.cartao_id } : {}),
     });
 
-    const hoje = new Date();
-    await this.repo.deleteTransacoesFuturasNaoPagas(userId, hoje.getFullYear(), hoje.getMonth() + 1);
-
     return GastoFixoMapper.toDTO(updated);
   }
 
@@ -156,22 +163,29 @@ export class GastosFixosService implements IGastosFixosService {
       const currAno = hoje.getFullYear();
       const currMes = hoje.getMonth() + 1;
 
-      // 1. Limpa transações não pagas de meses futuros para liberar o limite do cartão
-      await this.repo.deleteTransacoesFuturasNaoPagas(userId, currAno, currMes);
-
-      // 2. Busca todos os gastos fixos ativos
+      // Busca todos os gastos fixos ativos
       const ativos = await this.repo.findAtivos(userId);
 
-      // 3. Garante que cada gasto fixo ativo tenha exatamente uma transação no mês corrente
       const novasTransacoes: NovaTransacaoLote[] = [];
 
       for (const gf of ativos) {
         const isCartao = gf.tipoPagamento === 'credito' && Boolean(gf.cartaoId);
-        const jaExiste = await this.repo.existeTransacaoNoMes(gf.id, userId, currAno, currMes, isCartao);
 
-        if (!jaExiste) {
-          const t = this.gerarTransacaoMes(gf, currAno, currMes);
-          novasTransacoes.push(t);
+        // Garante horizonte de 12 meses de transações para planejamento futuro
+        for (let i = 0; i < 12; i++) {
+          let m = currMes + i;
+          let a = currAno;
+          while (m > 12) {
+            m -= 12;
+            a += 1;
+          }
+
+          const jaExiste = await this.repo.existeTransacaoNoMes(gf.id, userId, a, m, isCartao);
+
+          if (!jaExiste) {
+            const t = this.gerarTransacaoMes(gf, a, m);
+            novasTransacoes.push(t);
+          }
         }
       }
 
