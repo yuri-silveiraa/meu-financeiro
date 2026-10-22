@@ -13,8 +13,8 @@ export function createApp(): Express {
 
   // Rate limiting geral
   const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
+    windowMs: 10 * 60 * 1000,
+    max: 400,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },

@@ -22,6 +22,7 @@ describe('GastosFixosService', () => {
       updateTransacoesNaoPagas: vi.fn(),
       deleteTransacoesNaoPagas: vi.fn(),
       createTransacoesLote: vi.fn().mockResolvedValue(12),
+      removerDuplicatasGastosFixos: vi.fn().mockResolvedValue(0),
       softDelete: vi.fn(),
     };
     service = new GastosFixosService(mockRepo);
@@ -142,34 +143,14 @@ describe('GastosFixosService', () => {
     expect(result.transacoesCriadas).toBe(12);
   });
 
-  it('sincronizarGastosFixos garante horizonte de 12 meses para gastos fixos ativos', async () => {
-    const fakeGf: GastoFixoWithRelations = {
-      id: 3,
-      userId: 10,
-      nome: 'Internet',
-      valor: new Decimal(120),
-      diaVencimento: 10,
-      tipoPagamento: 'pix',
-      categoriaId: null,
-      contaId: null,
-      cartaoId: null,
-      totalParcelas: null,
-      tipo: 'despesa',
-      ativo: true,
-      dataCriacao: new Date(),
-      categoria: null,
-      conta: null,
-      cartao: null,
-    };
+  it('list remove duplicatas existentes e não recria transações deletadas', async () => {
+    vi.mocked(mockRepo.findByUserId).mockResolvedValue([]);
 
-    vi.mocked(mockRepo.findAtivos).mockResolvedValue([fakeGf]);
-    vi.mocked(mockRepo.existeTransacaoNoMes).mockResolvedValue(false);
+    await service.list(10);
 
-    await service.sincronizarGastosFixos(10);
-
-    expect(mockRepo.createTransacoesLote).toHaveBeenCalledTimes(1);
-    const transacoesLote = vi.mocked(mockRepo.createTransacoesLote).mock.calls[0][0];
-    expect(transacoesLote).toHaveLength(12);
+    expect(mockRepo.removerDuplicatasGastosFixos).toHaveBeenCalledWith(10);
+    expect(mockRepo.findByUserId).toHaveBeenCalledWith(10);
+    expect(mockRepo.createTransacoesLote).not.toHaveBeenCalled();
   });
 
   it('lança AppError 404 ao tentar atualizar gasto fixo inexistente', async () => {

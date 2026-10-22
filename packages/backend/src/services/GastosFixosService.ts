@@ -21,7 +21,7 @@ export class GastosFixosService implements IGastosFixosService {
   constructor(private readonly repo: IGastosFixosRepository) {}
 
   async list(userId: number): Promise<GastoFixoResponseDTO[]> {
-    await this.sincronizarGastosFixos(userId);
+    await this.repo.removerDuplicatasGastosFixos(userId);
     const list = await this.repo.findByUserId(userId);
     return GastoFixoMapper.toDTOList(list);
   }
@@ -159,39 +159,7 @@ export class GastosFixosService implements IGastosFixosService {
     if (!userId) return;
 
     try {
-      const hoje = new Date();
-      const currAno = hoje.getFullYear();
-      const currMes = hoje.getMonth() + 1;
-
-      // Busca todos os gastos fixos ativos
-      const ativos = await this.repo.findAtivos(userId);
-
-      const novasTransacoes: NovaTransacaoLote[] = [];
-
-      for (const gf of ativos) {
-        const isCartao = gf.tipoPagamento === 'credito' && Boolean(gf.cartaoId);
-
-        // Garante horizonte de 12 meses de transações para planejamento futuro
-        for (let i = 0; i < 12; i++) {
-          let m = currMes + i;
-          let a = currAno;
-          while (m > 12) {
-            m -= 12;
-            a += 1;
-          }
-
-          const jaExiste = await this.repo.existeTransacaoNoMes(gf.id, userId, a, m, isCartao);
-
-          if (!jaExiste) {
-            const t = this.gerarTransacaoMes(gf, a, m);
-            novasTransacoes.push(t);
-          }
-        }
-      }
-
-      if (novasTransacoes.length > 0) {
-        await this.repo.createTransacoesLote(novasTransacoes);
-      }
+      await this.repo.removerDuplicatasGastosFixos(userId);
     } catch (err) {
       console.error('Erro ao sincronizar gastos fixos:', err);
     }

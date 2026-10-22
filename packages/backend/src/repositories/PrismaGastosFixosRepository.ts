@@ -224,6 +224,45 @@ export class PrismaGastosFixosRepository implements IGastosFixosRepository {
     return result.count;
   }
 
+  async removerDuplicatasGastosFixos(userId: number): Promise<number> {
+    const transacoes = await prisma.transacao.findMany({
+      where: {
+        userId,
+        gastoFixoId: { not: null },
+        pago: false,
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    const seen = new Set<string>();
+    const idsToDelete: number[] = [];
+
+    for (const t of transacoes) {
+      const d = new Date(t.data);
+      const ano = t.faturaAno || d.getUTCFullYear();
+      const mes = t.faturaMes || (d.getUTCMonth() + 1);
+      const key = `${t.gastoFixoId}_${ano}_${mes}`;
+
+      if (seen.has(key)) {
+        idsToDelete.push(t.id);
+      } else {
+        seen.add(key);
+      }
+    }
+
+    if (idsToDelete.length > 0) {
+      await prisma.transacao.deleteMany({
+        where: {
+          id: { in: idsToDelete },
+          userId,
+        },
+      });
+      return idsToDelete.length;
+    }
+
+    return 0;
+  }
+
   async softDelete(id: number, userId: number): Promise<void> {
     await prisma.$transaction([
       prisma.gastoFixo.update({

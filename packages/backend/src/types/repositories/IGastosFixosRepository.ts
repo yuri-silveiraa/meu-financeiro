@@ -71,5 +71,6 @@ export interface IGastosFixosRepository {
   updateTransacoesNaoPagas(gastoFixoId: number, userId: number, data: Partial<NovaTransacaoLote>): Promise<number>;
   deleteTransacoesNaoPagas(gastoFixoId: number, userId: number): Promise<number>;
   createTransacoesLote(transacoes: NovaTransacaoLote[]): Promise<number>;
+  removerDuplicatasGastosFixos(userId: number): Promise<number>;
   softDelete(id: number, userId: number): Promise<void>;
 }
