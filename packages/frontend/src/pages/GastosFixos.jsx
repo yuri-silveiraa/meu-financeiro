@@ -5,6 +5,7 @@ import GastoFixoCard from '../components/GastoFixoCard';
 import { formatCurrency } from '../utils/currency';
 import { api } from '../services/api';
 import EmptyState from '../components/EmptyState';
+import { StatCardSkeleton, GastoFixoCardSkeleton } from '../components/Skeleton';
 
 
 const initialForm = () => ({
@@ -311,43 +312,47 @@ function GastosFixos() {
         ))}
       </div>
 
-      <div className="stats-grid compact-summary stats-split">
-        <div className="stat-card despesa">
-          <div className="stat-header">
-            <span className="stat-label">Total Despesas</span>
-            <span className="stat-indicator negative">↓</span>
+      {loading && gastosFixos.length === 0 ? (
+        <StatCardSkeleton count={5} className="stats-grid compact-summary stats-split" />
+      ) : (
+        <div className="stats-grid compact-summary stats-split">
+          <div className="stat-card despesa">
+            <div className="stat-header">
+              <span className="stat-label">Total Despesas</span>
+              <span className="stat-indicator negative">↓</span>
+            </div>
+            <div className="stat-value negative">{formatCurrency(totalDespesas)}</div>
           </div>
-          <div className="stat-value negative">{formatCurrency(totalDespesas)}</div>
-        </div>
-        <div className="stat-card receita">
-          <div className="stat-header">
-            <span className="stat-label">Total Receitas</span>
-            <span className="stat-indicator positive">↑</span>
+          <div className="stat-card receita">
+            <div className="stat-header">
+              <span className="stat-label">Total Receitas</span>
+              <span className="stat-indicator positive">↑</span>
+            </div>
+            <div className="stat-value positive">{formatCurrency(totalReceitas)}</div>
           </div>
-          <div className="stat-value positive">{formatCurrency(totalReceitas)}</div>
-        </div>
-        <div className="stat-card saldo">
-          <div className="stat-header">
-            <span className="stat-label">Saldo Fixo</span>
-            <span className="stat-indicator saldo">⚡</span>
+          <div className="stat-card saldo">
+            <div className="stat-header">
+              <span className="stat-label">Saldo Fixo</span>
+              <span className="stat-indicator saldo">⚡</span>
+            </div>
+            <div className={`stat-value ${saldoFixo >= 0 ? 'positive' : 'negative'}`}>{formatCurrency(saldoFixo)}</div>
           </div>
-          <div className={`stat-value ${saldoFixo >= 0 ? 'positive' : 'negative'}`}>{formatCurrency(saldoFixo)}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-label">Quantidade</span>
-            <span className="stat-indicator neutral">📋</span>
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-label">Quantidade</span>
+              <span className="stat-indicator neutral">📋</span>
+            </div>
+            <div className="stat-value">{gastosFiltrados.length}</div>
           </div>
-          <div className="stat-value">{gastosFiltrados.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <span className="stat-label">Próximo vencimento</span>
-            <span className="stat-indicator neutral">📅</span>
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-label">Próximo vencimento</span>
+              <span className="stat-indicator neutral">📅</span>
+            </div>
+            <div className="stat-value">{proximoVencimento ? `Dia ${proximoVencimento}` : '-'}</div>
           </div>
-          <div className="stat-value">{proximoVencimento ? `Dia ${proximoVencimento}` : '-'}</div>
         </div>
-      </div>
+      )}
 
       <div className="workspace-panel">
         <div className="filters-bar compact">
@@ -361,20 +366,26 @@ function GastosFixos() {
         </div>
 
           <div className="transaction-list">
-            {gastosFiltrados.map((gasto) => (
-              <GastoFixoCard
-                key={gasto.id}
-                gasto={gasto}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-            {gastosFiltrados.length === 0 && (
-              <EmptyState
-                title="Nenhum gasto fixo encontrado"
-                description="Adicione novos gastos fixos usando o botão acima."
-                icon="📌"
-              />
+            {loading && gastosFixos.length === 0 ? (
+              <GastoFixoCardSkeleton count={4} />
+            ) : (
+              <>
+                {gastosFiltrados.map((gasto) => (
+                  <GastoFixoCard
+                    key={gasto.id}
+                    gasto={gasto}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+                {gastosFiltrados.length === 0 && (
+                  <EmptyState
+                    title="Nenhum gasto fixo encontrado"
+                    description="Adicione novos gastos fixos usando o botão acima."
+                    icon="📌"
+                  />
+                )}
+              </>
             )}
           </div>
       </div>

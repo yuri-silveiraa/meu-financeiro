@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircleOutlined, UndoOutlined } from '@ant-design/icons';
 import TransactionCard from '../../../components/TransactionCard';
 import EmptyState from '../../../components/EmptyState';
+import { TransactionCardSkeleton } from '../../../components/Skeleton';
 import { useTransacoes } from '../TransacoesContext';
 
 export default function TransacoesList() {
@@ -19,9 +20,7 @@ export default function TransacoesList() {
   if (loading && filteredTransacoes.length === 0) {
     return (
       <div className="transaction-list">
-        <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
-          Carregando...
-        </div>
+        <TransactionCardSkeleton count={5} />
       </div>
     );
   }
@@ -45,7 +44,7 @@ export default function TransacoesList() {
             <span className="transacoes-count-info">
               {filteredTransacoes.length} {filteredTransacoes.length === 1 ? 'transação' : 'transações'}
               {pendentesCount > 0 ? (
-                <span className="badge-pendentes"> · {pendentesCount} a pagar/receber</span>
+                <span className="badge-pendentes"> · {pendentesCount}  pagar/receber</span>
               ) : (
                 <span className="badge-todas-concluidas"> · ✓ Todas concluídas</span>
               )}

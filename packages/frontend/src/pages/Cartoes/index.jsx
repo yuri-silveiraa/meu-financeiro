@@ -2,6 +2,7 @@ import React from 'react';
 import { Row, Col, Button, Typography, Spin } from 'antd';
 import { CreditCardOutlined, PlusOutlined } from '@ant-design/icons';
 import EmptyState from '../../components/EmptyState';
+import { CartaoCardSkeleton } from '../../components/Skeleton';
 import { CartoesProvider, useCartoes } from './CartoesContext';
 import CreditCardItem from './components/CreditCardItem';
 import FaturasSection from './components/FaturasSection';
@@ -26,9 +27,7 @@ function CartoesContent() {
       </div>
 
       {loading && cartoes.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <Spin size="large" />
-        </div>
+        <CartaoCardSkeleton count={3} />
       ) : cartoes.length === 0 ? (
         <EmptyState
           title="Nenhum cartão cadastrado"

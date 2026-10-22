@@ -1,9 +1,14 @@
 import React from 'react';
 import { formatCurrency } from '../../../utils/currency';
+import { StatCardSkeleton } from '../../../components/Skeleton';
 import { useTransacoes } from '../TransacoesContext';
 
 export default function TransacoesSummary() {
-  const { totalReceitas, totalDespesasPagas, saldoAtual, saldoProjetado } = useTransacoes();
+  const { totalReceitas, totalDespesasPagas, saldoAtual, saldoProjetado, loading, filteredTransacoes } = useTransacoes();
+
+  if (loading && filteredTransacoes.length === 0) {
+    return <StatCardSkeleton count={4} className="stats-grid finance-summary" />;
+  }
 
   return (
     <div className="stats-grid finance-summary">

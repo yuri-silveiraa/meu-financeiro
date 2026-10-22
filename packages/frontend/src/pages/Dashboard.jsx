@@ -10,6 +10,7 @@ import { getMonthName } from '../utils/date';
 import { api } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 import EmptyState from '../components/EmptyState';
+import { DashboardSkeleton } from '../components/Skeleton';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#6b7280'];
 
@@ -43,6 +44,7 @@ function Dashboard() {
   const [previsoes, setPrevisoes] = useState([]);
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -67,6 +69,8 @@ function Dashboard() {
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
       setError('Erro ao carregar dados do dashboard');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,6 +107,14 @@ function Dashboard() {
   const projecaoFaturas = Array.isArray(estatisticas?.projecaoFaturas) ? estatisticas.projecaoFaturas : [];
   const cartoesInfo = Array.isArray(estatisticas?.cartoesInfo) ? estatisticas.cartoesInfo : [];
   const previsoesList = Array.isArray(previsoes) ? previsoes : [];
+
+  if (loading) {
+    return (
+      <div>
+        <DashboardSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div>

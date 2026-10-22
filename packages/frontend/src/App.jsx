@@ -26,6 +26,7 @@ import PoliticaPrivacidade from './pages/PoliticaPrivacidade';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import BottomNav from './components/BottomNav';
+import { AppSkeleton } from './components/Skeleton';
 
 const { Header, Sider, Content } = Layout;
 
@@ -152,7 +153,7 @@ function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Carregando...</div>;
+    return <AppSkeleton />;
   }
 
   return user ? children : <Navigate to="/login" />;

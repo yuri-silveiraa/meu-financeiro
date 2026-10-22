@@ -21,23 +21,6 @@ export default function TransacoesToolbar() {
       >
         <PlusOutlined /> Nova Transação
       </button>
-
-      {filteredTransacoes.length > 0 && (
-        <button
-          type="button"
-          className={`btn-marcar-todas ${hasPendentes ? 'pago' : 'aberto'}`}
-          onClick={handleToggleAllPago}
-          disabled={loading}
-          title={
-            hasPendentes
-              ? 'Marcar todas as transações como pagas/recebidas de uma só vez'
-              : 'Desmarcar todas (tornar pendentes)'
-          }
-        >
-          {hasPendentes ? <CheckCircleOutlined /> : <UndoOutlined />}
-          <span>{hasPendentes ? 'Marcar todas como pagas' : 'Desmarcar todas'}</span>
-        </button>
-      )}
     </div>
   );
 }

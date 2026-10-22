@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/currency';
 import { validateRequired } from '../utils/validation';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { Skeleton } from '../components/Skeleton';
 
 const CORES = [
   // Verdes e Esmeraldas
@@ -257,7 +258,13 @@ function Configuracoes() {
                 )}
               </button>
            </div>
-          {categorias.length > 0 ? (
+           {loading && categorias.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Skeleton width="100%" height="40px" borderRadius="8px" />
+              <Skeleton width="100%" height="40px" borderRadius="8px" />
+              <Skeleton width="100%" height="40px" borderRadius="8px" />
+            </div>
+          ) : categorias.length > 0 ? (
             <div>
               {categorias.map((c) => (
                 <div key={c.id} className="settings-row">
@@ -292,7 +299,13 @@ function Configuracoes() {
                 )}
               </button>
           </div>
-          {contas.length > 0 ? (
+          {loading && contas.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Skeleton width="100%" height="40px" borderRadius="8px" />
+              <Skeleton width="100%" height="40px" borderRadius="8px" />
+              <Skeleton width="100%" height="40px" borderRadius="8px" />
+            </div>
+          ) : contas.length > 0 ? (
             <div>
               {contas.map((c) => (
                 <div key={c.id} className="settings-row">
