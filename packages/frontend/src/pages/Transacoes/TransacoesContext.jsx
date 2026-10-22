@@ -34,8 +34,11 @@ export function TransacoesProvider({ children }) {
     }
   }, [location.state]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (options = {}) => {
+    const { silent = false } = options;
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [t, c, ct, cr] = await Promise.all([
@@ -52,7 +55,9 @@ export function TransacoesProvider({ children }) {
       setError(err.message || 'Erro ao carregar dados');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [filtros]);
 
@@ -62,15 +67,28 @@ export function TransacoesProvider({ children }) {
 
   const handleTogglePago = useCallback(
     async (id) => {
+      // 1. Atualização otimista imediata para não perder a posição do scroll nem piscar a tela
+      setTransacoes((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, pago: !t.pago } : t))
+      );
+
       try {
-        await api.togglePago(id);
-        loadData();
+        const res = await api.togglePago(id);
+        if (res && typeof res.pago === 'boolean') {
+          setTransacoes((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, pago: res.pago } : t))
+          );
+        }
       } catch (err) {
         console.error('Erro ao alterar status:', err);
         message.error('Erro ao alterar status de pagamento');
+        // Rollback do status em caso de falha
+        setTransacoes((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, pago: !t.pago } : t))
+        );
       }
     },
-    [loadData]
+    []
   );
 
   const handleEdit = useCallback((transacao) => {
@@ -301,6 +319,68 @@ export function TransacoesProvider({ children }) {
   const saldoAtual = totalReceitas - totalDespesasPagas;
   const saldoProjetado = (totalReceitas + totalReceitasPendentes) - (totalDespesasPagas + totalDespesasNaoPagas);
 
+  const pendentesCount = useMemo(
+    () => filteredTransacoes.filter((t) => !t.pago).length,
+    [filteredTransacoes]
+  );
+
+  const hasPendentes = pendentesCount > 0;
+
+  const handleToggleAllPago = useCallback(() => {
+    if (!filteredTransacoes || filteredTransacoes.length === 0) return;
+
+    if (hasPendentes) {
+      Modal.confirm({
+        title: 'Marcar todas como pagas/recebidas',
+        content: `Deseja marcar todas as ${pendentesCount} transações pendentes como pagas/recebidas?`,
+        okText: 'Sim, marcar todas',
+        cancelText: 'Cancelar',
+        onOk: async () => {
+          const idsToUpdate = filteredTransacoes.filter((t) => !t.pago).map((t) => t.id);
+          setTransacoes((prev) =>
+            prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, pago: true } : t))
+          );
+
+          try {
+            await api.togglePagoLote(idsToUpdate, true);
+            message.success('Todas as transações foram marcadas como pagas/recebidas');
+          } catch (err) {
+            console.error('Erro ao marcar lote:', err);
+            message.error('Erro ao atualizar status das transações');
+            setTransacoes((prev) =>
+              prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, pago: false } : t))
+            );
+          }
+        },
+      });
+    } else {
+      Modal.confirm({
+        title: 'Desmarcar todas as transações',
+        content: `Todas as transações já estão marcadas como pagas/recebidas. Deseja desmarcá-las e torná-las pendentes?`,
+        okText: 'Sim, desmarcar todas',
+        okType: 'danger',
+        cancelText: 'Cancelar',
+        onOk: async () => {
+          const idsToUpdate = filteredTransacoes.map((t) => t.id);
+          setTransacoes((prev) =>
+            prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, pago: false } : t))
+          );
+
+          try {
+            await api.togglePagoLote(idsToUpdate, false);
+            message.success('Todas as transações foram marcadas como pendentes');
+          } catch (err) {
+            console.error('Erro ao desmarcar lote:', err);
+            message.error('Erro ao atualizar status das transações');
+            setTransacoes((prev) =>
+              prev.map((t) => (idsToUpdate.includes(t.id) ? { ...t, pago: true } : t))
+            );
+          }
+        },
+      });
+    }
+  }, [filteredTransacoes, hasPendentes, pendentesCount]);
+
   const value = {
     transacoes,
     categorias,
@@ -328,6 +408,8 @@ export function TransacoesProvider({ children }) {
     error,
     activeFiltersCount,
     filteredTransacoes,
+    pendentesCount,
+    hasPendentes,
     totalReceitas,
     totalReceitasPendentes,
     totalDespesasPagas,
@@ -336,6 +418,7 @@ export function TransacoesProvider({ children }) {
     saldoProjetado,
     loadData,
     handleTogglePago,
+    handleToggleAllPago,
     handleEdit,
     handleDelete,
     resetForm,

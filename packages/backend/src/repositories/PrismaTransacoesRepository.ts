@@ -127,4 +127,15 @@ export class PrismaTransacoesRepository implements ITransacoesRepository {
     });
     return Boolean(updated.pago);
   }
+
+  async updateManyPago(ids: number[], userId: number, pago: boolean): Promise<number> {
+    const result = await prisma.transacao.updateMany({
+      where: {
+        id: { in: ids },
+        userId,
+      },
+      data: { pago },
+    });
+    return result.count;
+  }
 }

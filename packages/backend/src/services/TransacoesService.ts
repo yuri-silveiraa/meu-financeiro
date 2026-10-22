@@ -179,4 +179,12 @@ export class TransacoesService implements ITransacoesService {
       pago: resultPago,
     };
   }
+
+  async updateManyPago(ids: number[], userId: number, pago: boolean): Promise<{ success: boolean; count: number }> {
+    const count = await this.repo.updateManyPago(ids, userId, pago);
+    return {
+      success: true,
+      count,
+    };
+  }
 }

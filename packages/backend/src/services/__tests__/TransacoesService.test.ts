@@ -21,6 +21,7 @@ describe('TransacoesService', () => {
       deleteByGrupo: vi.fn(),
       deleteFutureByGrupo: vi.fn(),
       togglePago: vi.fn(),
+      updateManyPago: vi.fn(),
     };
     mockCartoesRepo = {
       findByUserId: vi.fn(),
@@ -177,6 +178,15 @@ describe('TransacoesService', () => {
 
     expect(mockRepo.togglePago).toHaveBeenCalledWith(7, 10, true);
     expect(result).toEqual({ success: true, pago: true });
+  });
+
+  it('atualiza status pago em lote via updateManyPago', async () => {
+    vi.mocked(mockRepo.updateManyPago).mockResolvedValue(5);
+
+    const result = await service.updateManyPago([1, 2, 3, 4, 5], 10, true);
+
+    expect(mockRepo.updateManyPago).toHaveBeenCalledWith([1, 2, 3, 4, 5], 10, true);
+    expect(result).toEqual({ success: true, count: 5 });
   });
 
   it('deleta transações futuras de compra parcelada quando mode=future', async () => {

@@ -6,6 +6,7 @@ import {
   transacaoQuerySchema,
   createTransacaoSchema,
   updateTransacaoSchema,
+  updateManyPagoSchema,
 } from '../schemas/transacao.schema.js';
 import { PrismaTransacoesRepository } from '../repositories/PrismaTransacoesRepository.js';
 import { PrismaCartoesRepository } from '../repositories/PrismaCartoesRepository.js';
@@ -31,6 +32,11 @@ router.post(
   '/',
   validate({ body: createTransacaoSchema }),
   asyncHandler(transacoesController.create)
+);
+router.patch(
+  '/pago-lote',
+  validate({ body: updateManyPagoSchema }),
+  asyncHandler(transacoesController.updateManyPago)
 );
 router.get('/:id', asyncHandler(transacoesController.findById));
 router.put(

@@ -12,6 +12,7 @@ vi.mock('../../config/prisma.js', () => ({
       update: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
+      updateMany: vi.fn(),
     },
   },
 }));
@@ -90,6 +91,23 @@ describe('PrismaTransacoesRepository', () => {
 
       const callArgs = vi.mocked(prisma.transacao.findMany).mock.calls[0][0];
       expect(callArgs?.where?.data).toBeUndefined();
+    });
+  });
+
+  describe('updateManyPago', () => {
+    it('deve atualizar o status pago em lote para as transações do usuário', async () => {
+      vi.mocked(prisma.transacao.updateMany).mockResolvedValue({ count: 3 });
+
+      const count = await repository.updateManyPago([1, 2, 3], 10, true);
+
+      expect(count).toBe(3);
+      expect(prisma.transacao.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: [1, 2, 3] },
+          userId: 10,
+        },
+        data: { pago: true },
+      });
     });
   });
 });

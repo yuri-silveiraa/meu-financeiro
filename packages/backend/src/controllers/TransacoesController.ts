@@ -40,4 +40,10 @@ export class TransacoesController {
     const resultado = await this.service.togglePago(id, req.userId!);
     return res.json(resultado);
   };
+
+  updateManyPago = async (req: Request, res: Response): Promise<Response<{ success: boolean; count: number }>> => {
+    const { ids, pago } = req.body;
+    const resultado = await this.service.updateManyPago(ids, req.userId!, pago);
+    return res.json(resultado);
+  };
 }

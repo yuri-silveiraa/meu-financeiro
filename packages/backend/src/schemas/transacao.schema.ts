@@ -46,3 +46,8 @@ export const updateTransacaoSchema = z.object({
   pago: z.coerce.boolean().optional(),
   gasto_fixo_id: nullableNumber,
 });
+
+export const updateManyPagoSchema = z.object({
+  ids: z.array(z.coerce.number().int().positive()).min(1, 'Pelo menos um ID deve ser fornecido'),
+  pago: z.coerce.boolean(),
+});

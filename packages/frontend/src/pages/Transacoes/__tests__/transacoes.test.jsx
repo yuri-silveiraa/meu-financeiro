@@ -70,4 +70,12 @@ describe('Transacoes Constants & Helpers', () => {
     expect(formatDataBr(null)).toBe('-');
     expect(formatDataBr('')).toBe('-');
   });
+
+  it('permite alternar pago em lote via mock com sucesso', async () => {
+    const { installBrowserApiMock } = await import('../../../utils/browserApiMock');
+    installBrowserApiMock();
+    const result = await window.api.togglePagoLote([1, 2], true);
+    expect(result.success).toBe(true);
+    expect(result.count).toBeGreaterThanOrEqual(1);
+  });
 });

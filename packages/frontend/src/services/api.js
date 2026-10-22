@@ -49,6 +49,7 @@ export const api = {
   updateTransacao: (id, data) => request(`/api/transacoes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTransacao: (id) => request(`/api/transacoes/${id}`, { method: 'DELETE' }),
   togglePago: (id) => request(`/api/transacoes/${id}/pago`, { method: 'PATCH' }),
+  togglePagoLote: (ids, pago) => request('/api/transacoes/pago-lote', { method: 'PATCH', body: JSON.stringify({ ids, pago }) }),
 
   // Categorias
   getCategorias: () => request('/api/categorias'),

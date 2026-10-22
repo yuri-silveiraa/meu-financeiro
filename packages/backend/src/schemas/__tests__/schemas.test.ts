@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transacaoQuerySchema,
   createTransacaoSchema,
+  updateManyPagoSchema,
 } from '../transacao.schema.js';
 import { createGastoFixoSchema } from '../gastoFixo.schema.js';
 import { createCartaoSchema } from '../cartao.schema.js';
@@ -119,6 +120,27 @@ describe('Zod Schemas Resilience', () => {
       if (result.success) {
         expect(result.data.conta_padrao_id).toBeNull();
       }
+    });
+  });
+
+  describe('updateManyPagoSchema', () => {
+    it('valida array de ids e booleano pago com sucesso', () => {
+      const body = {
+        ids: [1, 2, 3],
+        pago: true,
+      };
+
+      const result = updateManyPagoSchema.safeParse(body);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ids).toEqual([1, 2, 3]);
+        expect(result.data.pago).toBe(true);
+      }
+    });
+
+    it('rejeita payload sem ids ou com array vazio', () => {
+      const result = updateManyPagoSchema.safeParse({ ids: [], pago: true });
+      expect(result.success).toBe(false);
     });
   });
 });

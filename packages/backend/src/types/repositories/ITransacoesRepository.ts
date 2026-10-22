@@ -18,4 +18,5 @@ export interface ITransacoesRepository {
   deleteByGrupo(compraGrupoId: string, userId: number): Promise<void>;
   deleteFutureByGrupo(compraGrupoId: string, parcelaAtual: number, userId: number): Promise<void>;
   togglePago(id: number, userId: number, newPago: boolean): Promise<boolean>;
+  updateManyPago(ids: number[], userId: number, pago: boolean): Promise<number>;
 }

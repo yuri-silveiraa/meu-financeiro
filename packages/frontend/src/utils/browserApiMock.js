@@ -148,6 +148,19 @@ export function installBrowserApiMock() {
       saveState(state);
       return { success: Boolean(item), pago: item?.pago };
     },
+    togglePagoLote: async (ids, pago) => {
+      const state = loadState();
+      let count = 0;
+      state.transacoes = state.transacoes.map((item) => {
+        if (ids.includes(item.id)) {
+          count++;
+          return { ...item, pago: pago ? 1 : 0 };
+        }
+        return item;
+      });
+      saveState(state);
+      return { success: true, count };
+    },
     getCategorias: async () => loadState().categorias.sort((a, b) => a.nome.localeCompare(b.nome)),
     addCategoria: async (categoria) => {
       const state = loadState();
